@@ -6,16 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Immutable two‑level perfect hash map for a fixed set of keys.
- * <p>
- * Level 1: a universal hash function distributes keys into buckets. <br>
- * Level 2: for each bucket, a separate perfect hash table with its own
- * universal hash function is built over the keys in that bucket.
- */
 public final class PerfectHash<K, V> {
 
-    // Large prime for universal hashing.
     private static final int PRIME = 1_000_000_007;
 
     private final int a1;
@@ -24,9 +16,6 @@ public final class PerfectHash<K, V> {
     private final SecondaryTable<K, V>[] buckets;
     private final int size;
 
-    /**
-     * Creates an empty perfect hash.
-     */
     @SuppressWarnings("unchecked")
     public PerfectHash() {
         this.a1 = 1;
@@ -36,16 +25,6 @@ public final class PerfectHash<K, V> {
         this.size = 0;
     }
 
-    /**
-     * Builds a two‑level perfect hash for the given key-value mapping.
-     * <p>
-     * The primary hash uses parameters {@code (a1, b1)} to distribute keys into
-     * {@code m} buckets. For each non‑empty bucket a secondary perfect hash
-     * table is built, each with its own independently chosen universal hash
-     * parameters.
-     *
-     * @param entries map of keys to values (must not be {@code null} and must not contain {@code null} keys)
-     */
     @SuppressWarnings("unchecked")
     public PerfectHash(Map<K, V> entries) {
         Objects.requireNonNull(entries, "entries must not be null");
@@ -66,9 +45,6 @@ public final class PerfectHash<K, V> {
         int chosenB1;
         SecondaryTable<K, V>[] chosenBuckets;
 
-        // FKS analysis: with m = n, the expected value of sum n_i^2 over buckets
-        // is O(n). We resample (a1, b1) until the realized sum stays within a
-        // constant factor of n, guaranteeing total space O(n).
         outer:
         while (true) {
             @SuppressWarnings("unchecked") List<Map.Entry<K, V>>[] bucketLists =
@@ -100,7 +76,6 @@ public final class PerfectHash<K, V> {
                 }
             }
 
-            // If the realized space would be too large, resample the primary hash.
             if (sumSquares > 4L * n) {
                 continue;
             }
@@ -186,10 +161,8 @@ public final class PerfectHash<K, V> {
                         chosenKeys[idx] = key;
                         chosenValues[idx] = e.getValue();
                     } else if (!existingKey.equals(key)) {
-                        // Collision with different key – try another (a2, b2)
                         continue outer;
                     } else {
-                        // Same key, update value.
                         chosenValues[idx] = e.getValue();
                     }
                 }
@@ -238,16 +211,10 @@ public final class PerfectHash<K, V> {
         }
     }
 
-    /**
-     * Returns the number of distinct keys this perfect hash was built for.
-     */
     public int size() {
         return size;
     }
 
-    /**
-     * Returns {@code true} if the given key is part of this perfect hash.
-     */
     public boolean containsKey(K key) {
         Objects.requireNonNull(key, "key must not be null");
         if (primarySize == 0) {
@@ -258,10 +225,6 @@ public final class PerfectHash<K, V> {
         return table != null && table.containsKey(key);
     }
 
-    /**
-     * Returns the value associated with the given key, or {@code null} if the key
-     * is not part of this perfect hash.
-     */
     public V get(K key) {
         Objects.requireNonNull(key, "key must not be null");
         if (primarySize == 0) {
@@ -275,13 +238,6 @@ public final class PerfectHash<K, V> {
         return table.get(key);
     }
 
-    /**
-     * Returns an index for the given key that is collision‑free within this
-     * structure. The exact numeric range is implementation‑dependent and
-     * should be treated as an opaque identifier.
-     *
-     * @throws IllegalArgumentException if the key is not part of this perfect hash
-     */
     public int indexOf(K key) {
         Objects.requireNonNull(key, "key must not be null");
         if (primarySize == 0) {
@@ -296,8 +252,7 @@ public final class PerfectHash<K, V> {
         if (secondaryIdx < 0) {
             throw new IllegalArgumentException("Unknown key for this PerfectHash: " + key);
         }
-        // Combine primary and secondary indices into a single integer identifier.
-        // This does not need to be dense; it just needs to be collision‑free.
+
         return primaryIdx * 31 + secondaryIdx;
     }
 }
