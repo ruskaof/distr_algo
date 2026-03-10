@@ -53,5 +53,6 @@ tasks.register('jmh', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
     // Example includes; customize or override from CLI if needed.
-    args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*']
+    args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*',
+            'com.ruskaof.algorithm.PerfectHashBenchmark.*']
 }
