@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class ExtendibleHashTableBenchmark {
 
-    @Param({"100", "300", "500", "700", "900"})
-    public int initialKeys;
+    @Param({"100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300"})
+    public int entryCount;
 
     private ExtendibleHashTable table;
     private Path tempDir;
@@ -42,7 +42,7 @@ public class ExtendibleHashTableBenchmark {
         table = new ExtendibleHashTable(tempDir, 8, 64, 256);
         random = new Random();
 
-        for (int i = 0; i < initialKeys; i++) {
+        for (int i = 0; i < entryCount; i++) {
             String k = "key-" + i;
             String v = "value-" + i;
             table.putString(k, v);
@@ -68,14 +68,14 @@ public class ExtendibleHashTableBenchmark {
 
     @Benchmark
     public String benchmarkGetExisting() {
-        int i = random.nextInt(initialKeys);
+        int i = random.nextInt(entryCount);
         String key = "key-" + i;
         return table.getString(key);
     }
 
     @Benchmark
     public void benchmarkPutUpdateExisting() {
-        int i = random.nextInt(initialKeys);
+        int i = random.nextInt(entryCount);
         String key = "key-" + i;
         String value = "value-updated-" + i;
         table.putString(key, value);
@@ -83,7 +83,7 @@ public class ExtendibleHashTableBenchmark {
 
     @Benchmark
     public void benchmarkPutNewKeys() {
-        int i = initialKeys + random.nextInt(initialKeys);
+        int i = entryCount + random.nextInt(entryCount);
         String key = "insert-key-" + i;
         String value = "insert-value-" + i;
         table.putString(key, value);

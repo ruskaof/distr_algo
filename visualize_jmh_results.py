@@ -94,28 +94,35 @@ def auto_plot_all(csv_path: Path) -> int:
     if not param_cols:
         print("No parameter columns found in CSV.")
         return 1
+    if len(param_cols) > 1:
+        print(
+            "Expected a single parameter column, "
+            f"but found multiple: {', '.join(param_cols)}"
+        )
+        return 1
+
+    param_col = param_cols[0]
+    param_name = param_col.removeprefix("Param:")
 
     by_benchmark = defaultdict(list)
     for r in rows:
         by_benchmark[r["Benchmark"]].append(r)
 
     for bench_name, bench_rows in by_benchmark.items():
-        for param_col in param_cols:
-            values = []
-            for r in bench_rows:
-                v = r.get(param_col, "")
-                if not v:
-                    continue
-                try:
-                    values.append(float(v.replace("_", "")))
-                except ValueError:
-                    continue
-
-            if len(set(values)) < 2:
+        values = []
+        for r in bench_rows:
+            v = r.get(param_col, "")
+            if not v:
+                continue
+            try:
+                values.append(float(v.replace("_", "")))
+            except ValueError:
                 continue
 
-            param_name = param_col.removeprefix("Param:")
-            plot_benchmark_vs_param(rows, bench_name, param_name, out_dir)
+        if len(set(values)) < 2:
+            continue
+
+        plot_benchmark_vs_param(rows, bench_name, param_name, out_dir)
 
     return 0
 

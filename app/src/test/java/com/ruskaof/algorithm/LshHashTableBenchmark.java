@@ -25,8 +25,8 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class LshHashTableBenchmark {
 
-    @Param({"100", "300", "500", "700", "900"})
-    public int vectorCount;
+    @Param({"100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300", "2500", "2700", "2900"})
+    public int entryCount;
 
     public int dimension = 16;
 
@@ -36,17 +36,17 @@ public class LshHashTableBenchmark {
 
     @Setup(Level.Trial)
     public void setup() {
-        vectors = new double[vectorCount][dimension];
+        vectors = new double[entryCount][dimension];
         random = new Random();
 
-        for (int i = 0; i < vectorCount; i++) {
+        for (int i = 0; i < entryCount; i++) {
             for (int d = 0; d < dimension; d++) {
                 vectors[i][d] = random.nextGaussian();
             }
         }
 
         lsh = new LshHashTable(dimension, 16);
-        for (int i = 0; i < vectorCount; i++) {
+        for (int i = 0; i < entryCount; i++) {
             lsh.add(vectors[i]);
         }
     }
@@ -54,5 +54,23 @@ public class LshHashTableBenchmark {
     @Benchmark
     public List<List<Integer>> benchmarkReadBuckets() {
         return lsh.read();
+    }
+
+    @Benchmark
+    public void benchmarkAddVector() {
+        double[] v = new double[dimension];
+        for (int d = 0; d < dimension; d++) {
+            v[d] = random.nextGaussian();
+        }
+        lsh.add(v);
+    }
+
+    @Benchmark
+    public LshHashTable benchmarkBuildTable() {
+        LshHashTable table = new LshHashTable(dimension, 16);
+        for (int i = 0; i < entryCount; i++) {
+            table.add(vectors[i]);
+        }
+        return table;
     }
 }

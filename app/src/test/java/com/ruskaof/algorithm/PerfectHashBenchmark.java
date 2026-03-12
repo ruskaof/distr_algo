@@ -26,8 +26,8 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class PerfectHashBenchmark {
 
-    @Param({"1100", "1300", "1500", "1700", "1900", "2100", "2300", "2500", "2700", "2900"})
-    public int keyCount;
+    @Param({"100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300", "2500", "2700", "2900"})
+    public int entryCount;
 
     private PerfectHash<String, Integer> perfectHash;
     private String[] keys;
@@ -36,8 +36,8 @@ public class PerfectHashBenchmark {
     @Setup(Level.Trial)
     public void setup() {
         Map<String, Integer> data = new HashMap<>();
-        keys = new String[keyCount];
-        for (int i = 0; i < keyCount; i++) {
+        keys = new String[entryCount];
+        for (int i = 0; i < entryCount; i++) {
             String k = "key-" + i;
             keys[i] = k;
             data.put(k, i);
@@ -47,14 +47,14 @@ public class PerfectHashBenchmark {
 
     @Benchmark
     public int benchmarkGetExisting() {
-        int i = random.nextInt(keyCount);
+        int i = random.nextInt(entryCount);
         return perfectHash.get(keys[i]);
     }
 
     @Benchmark
     public PerfectHash<String, Integer> benchmarkBuild() {
         Map<String, Integer> data = new HashMap<>();
-        for (int i = 0; i < keyCount; i++) {
+        for (int i = 0; i < entryCount; i++) {
             data.put("key-" + i, i);
         }
         return new PerfectHash<>(data);
