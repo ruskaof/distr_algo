@@ -80,7 +80,7 @@ class ExtendibleHashTableTest {
 
     @Test
     void bucketSplittingAndDirectoryGrowthOnManyInserts() throws IOException {
-        setup(2); // Small capacity to force frequent splits
+        setup(2);
 
         int count = 100;
         for (int i = 0; i < count; i++) {

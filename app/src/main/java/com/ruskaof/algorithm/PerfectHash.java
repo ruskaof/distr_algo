@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
+@SuppressWarnings("unchecked")
 public final class PerfectHash<K, V> {
 
     private static final int PRIME = 1_000_000_007;
@@ -16,41 +17,22 @@ public final class PerfectHash<K, V> {
     private final SecondaryTable<K, V>[] buckets;
     private final int size;
 
-    @SuppressWarnings("unchecked")
-    public PerfectHash() {
-        this.a1 = 1;
-        this.b1 = 0;
-        this.primarySize = 0;
-        this.buckets = (SecondaryTable<K, V>[]) new SecondaryTable[0];
-        this.size = 0;
-    }
-
-    @SuppressWarnings("unchecked")
     public PerfectHash(Map<K, V> entries) {
-        Objects.requireNonNull(entries, "entries must not be null");
-
-        if (entries.isEmpty()) {
-            this.a1 = 1;
-            this.b1 = 0;
-            this.primarySize = 0;
-            this.buckets = (SecondaryTable<K, V>[]) new SecondaryTable[0];
-            this.size = 0;
-            return;
+        if (entries == null || entries.isEmpty()) {
+            throw new IllegalArgumentException("entries must not be empty");
         }
 
         int n = entries.size();
-        int m = n; // size of primary table – linear in n
+        int m = n;
 
         int chosenA1;
         int chosenB1;
         SecondaryTable<K, V>[] chosenBuckets;
 
-        outer:
-        while (true) {
-            @SuppressWarnings("unchecked") List<Map.Entry<K, V>>[] bucketLists =
-                    (List<Map.Entry<K, V>>[]) new List[m];
+        outer: while (true) {
+            List<Map.Entry<K, V>>[] bucketLists = (List<Map.Entry<K, V>>[]) new List[m];
 
-            int aCandidate = ThreadLocalRandom.current().nextInt(1, PRIME); // a1 != 0
+            int aCandidate = ThreadLocalRandom.current().nextInt(1, PRIME);
             int bCandidate = ThreadLocalRandom.current().nextInt(PRIME);
 
             for (Map.Entry<K, V> e : entries.entrySet()) {
@@ -80,8 +62,7 @@ public final class PerfectHash<K, V> {
                 continue;
             }
 
-            SecondaryTable<K, V>[] tmpBuckets =
-                    (SecondaryTable<K, V>[]) new SecondaryTable[m];
+            SecondaryTable<K, V>[] tmpBuckets = (SecondaryTable<K, V>[]) new SecondaryTable[m];
             for (int i = 0; i < m; i++) {
                 List<Map.Entry<K, V>> list = bucketLists[i];
                 if (list != null && !list.isEmpty()) {
@@ -104,7 +85,7 @@ public final class PerfectHash<K, V> {
 
     private static int baseHash(Object key) {
         int h = Objects.hashCode(key);
-        return h & 0x7fffffff;
+        return h == Integer.MIN_VALUE ? 0 : Math.abs(h);
     }
 
     private static int indexForPrimary(Object key, int a, int b, int tableSize) {
@@ -113,10 +94,6 @@ public final class PerfectHash<K, V> {
         return (int) (res % tableSize);
     }
 
-    /**
-     * Secondary perfect hash table for a single primary bucket.
-     * Uses its own universal hash parameters (a2, b2) and table size m2.
-     */
     private static final class SecondaryTable<K, V> {
         private final Object[] keys;
         private final Object[] values;
@@ -126,27 +103,14 @@ public final class PerfectHash<K, V> {
 
         SecondaryTable(List<Map.Entry<K, V>> entries) {
             int n = entries.size();
-            if (n == 1) {
-                this.tableSize = 1;
-                this.keys = new Object[1];
-                this.values = new Object[1];
-                Map.Entry<K, V> e = entries.get(0);
-                this.keys[0] = e.getKey();
-                this.values[0] = e.getValue();
-                this.a2 = 1;
-                this.b2 = 0;
-                return;
-            }
-
-            int m = n * n; // classic FKS: n_i^2 for bucket of size n_i
+            int m = n * n;
 
             Object[] chosenKeys;
             Object[] chosenValues;
             int chosenA;
             int chosenB;
 
-            outer:
-            while (true) {
+            outer: while (true) {
                 chosenKeys = new Object[m];
                 chosenValues = new Object[m];
 
@@ -185,13 +149,6 @@ public final class PerfectHash<K, V> {
             return (int) (res % tableSize);
         }
 
-        boolean containsKey(Object key) {
-            int idx = indexForSecondary(key, a2, b2, tableSize);
-            Object storedKey = keys[idx];
-            return storedKey != null && storedKey.equals(key);
-        }
-
-        @SuppressWarnings("unchecked")
         V get(Object key) {
             int idx = indexForSecondary(key, a2, b2, tableSize);
             Object storedKey = keys[idx];
@@ -201,28 +158,10 @@ public final class PerfectHash<K, V> {
             return (V) values[idx];
         }
 
-        int indexOf(Object key) {
-            int idx = indexForSecondary(key, a2, b2, tableSize);
-            Object storedKey = keys[idx];
-            if (storedKey == null || !storedKey.equals(key)) {
-                return -1;
-            }
-            return idx;
-        }
     }
 
     public int size() {
         return size;
-    }
-
-    public boolean containsKey(K key) {
-        Objects.requireNonNull(key, "key must not be null");
-        if (primarySize == 0) {
-            return false;
-        }
-        int primaryIdx = indexForPrimary(key, a1, b1, primarySize);
-        SecondaryTable<K, V> table = buckets[primaryIdx];
-        return table != null && table.containsKey(key);
     }
 
     public V get(K key) {
@@ -236,23 +175,5 @@ public final class PerfectHash<K, V> {
             return null;
         }
         return table.get(key);
-    }
-
-    public int indexOf(K key) {
-        Objects.requireNonNull(key, "key must not be null");
-        if (primarySize == 0) {
-            throw new IllegalArgumentException("Unknown key for this PerfectHash: " + key);
-        }
-        int primaryIdx = indexForPrimary(key, a1, b1, primarySize);
-        SecondaryTable<K, V> table = buckets[primaryIdx];
-        if (table == null) {
-            throw new IllegalArgumentException("Unknown key for this PerfectHash: " + key);
-        }
-        int secondaryIdx = table.indexOf(key);
-        if (secondaryIdx < 0) {
-            throw new IllegalArgumentException("Unknown key for this PerfectHash: " + key);
-        }
-
-        return primaryIdx * 31 + secondaryIdx;
     }
 }

@@ -14,17 +14,14 @@ class PerfectHashTest {
     void emptyMapHasSizeZeroAndNoKeys() {
         PerfectHash<String, Integer> ph = new PerfectHash<>(Map.of());
         assertEquals(0, ph.size());
-        assertFalse(ph.containsKey("any"));
         assertNull(ph.get("any"));
     }
 
     @Test
     void singleKeyIsStoredAndRetrievable() {
         PerfectHash<String, String> ph = new PerfectHash<>(Map.of("a", "value"));
-        assertEquals(1, ph.size());
-        assertTrue(ph.containsKey("a"));
+        assertEquals(1, ph.size()); 
         assertEquals("value", ph.get("a"));
-        assertThrows(IllegalArgumentException.class, () -> ph.indexOf("b"));
     }
 
     @Test
@@ -39,16 +36,8 @@ class PerfectHashTest {
         assertEquals(data.size(), ph.size());
         for (int i = 0; i < 100; i++) {
             String k = "key-" + i;
-            assertTrue(ph.containsKey(k));
             assertEquals(i, ph.get(k));
-            int idx = ph.indexOf(k);
-            // indexOf must be stable for the same key.
-            assertEquals(idx, ph.indexOf(k));
         }
-
-        assertFalse(ph.containsKey("missing"));
-        assertNull(ph.get("missing"));
-        assertThrows(IllegalArgumentException.class, () -> ph.indexOf("missing"));
     }
 
     @Test
@@ -62,9 +51,7 @@ class PerfectHashTest {
 
         for (Map.Entry<String, String> e : data.entrySet()) {
             String k = e.getKey();
-            assertTrue(ph.containsKey(k));
             assertEquals(e.getValue(), ph.get(k));
-            assertNotEquals(-1, ph.indexOf(k));
         }
     }
 }

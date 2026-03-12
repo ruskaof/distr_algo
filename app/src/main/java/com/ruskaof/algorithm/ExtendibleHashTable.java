@@ -19,277 +19,17 @@ public class ExtendibleHashTable {
     private final int maxValueBytes;
 
     private static final int META_FILE_SIZE = 16 * 1024 * 1024;
-    private static final int META_MAGIC = 0xE17E1DAB;
+    private static final int META_MAGIC = 0xEAEAEAEA;
     private static final int META_VERSION = 1;
 
     private int globalDepth;
     private int size;
 
-    private Bucket[] directory;
+    private ExtendibleHashTableBucket[] directory;
     private int nextBucketId = 0;
 
     private FileChannel metaChannel;
     private MappedByteBuffer metaBuffer;
-
-    private static final class Bucket {
-        // File layout:
-        // [0..3]   int localDepth
-        // [4..7]   int bucketCapacity
-        // [8..]    fixed-size entry records
-        //
-        // Each entry record:
-        // [0..3]   int status (0 = empty, 1 = used)
-        // [4..7]   int keyLen
-        // [8..11]  int valueLen
-        // [...]    key bytes (fixed maxKeyBytes)
-        // [...]    value bytes (fixed maxValueBytes)
-
-        private final int id;
-        private int localDepth;
-        private final int bucketCapacity;
-        private final int maxKeyBytes;
-        private final int maxValueBytes;
-        private final int entryRecordSize;
-        private final FileChannel channel;
-        private final MappedByteBuffer buffer;
-
-        Bucket(int id,
-               int localDepth,
-               int bucketCapacity,
-               int maxKeyBytes,
-               int maxValueBytes,
-               Path file) {
-            this.id = id;
-            this.localDepth = localDepth;
-            this.bucketCapacity = bucketCapacity;
-            this.maxKeyBytes = maxKeyBytes;
-            this.maxValueBytes = maxValueBytes;
-            this.entryRecordSize = 12 + maxKeyBytes + maxValueBytes;
-
-            try {
-                if (!Files.exists(file.getParent())) {
-                    Files.createDirectories(file.getParent());
-                }
-                this.channel = FileChannel.open(
-                        file,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.READ,
-                        StandardOpenOption.WRITE
-                );
-
-                long requiredSize = headerSize() + (long) bucketCapacity * entryRecordSize;
-                if (channel.size() < requiredSize) {
-                    channel.truncate(requiredSize);
-                }
-
-                this.buffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, requiredSize);
-
-                if (readInt(0) == 0 && readInt(4) == 0) {
-                    // Uninitialized bucket file – write header and clear entries.
-                    writeInt(0, localDepth);
-                    writeInt(4, bucketCapacity);
-                    clearAllEntries();
-                } else {
-                    // Existing bucket – load header values.
-                    this.localDepth = readInt(0);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to initialize bucket file: " + file, e);
-            }
-        }
-
-        int headerSize() {
-            return 8;
-        }
-
-        int id() {
-            return id;
-        }
-
-        int localDepth() {
-            return localDepth;
-        }
-
-        void setLocalDepth(int newDepth) {
-            this.localDepth = newDepth;
-            writeInt(0, newDepth);
-            force();
-        }
-
-        private int entryOffset(int index) {
-            return headerSize() + index * entryRecordSize;
-        }
-
-        private int readInt(int offset) {
-            return buffer.getInt(offset);
-        }
-
-        private void writeInt(int offset, int value) {
-            buffer.putInt(offset, value);
-        }
-
-        private void clearAllEntries() {
-            for (int i = 0; i < bucketCapacity; i++) {
-                int off = entryOffset(i);
-                writeInt(off, 0); // status = 0 (empty)
-            }
-            force();
-        }
-
-        private boolean keysEqual(int off, byte[] key) {
-            int keyLen = buffer.getInt(off + 4);
-            if (keyLen != key.length) {
-                return false;
-            }
-            int keyStart = off + 12;
-            for (int i = 0; i < keyLen; i++) {
-                if (buffer.get(keyStart + i) != key[i]) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private int findEntryIndex(byte[] key) {
-            for (int i = 0; i < bucketCapacity; i++) {
-                int off = entryOffset(i);
-                int status = buffer.getInt(off);
-                if (status == 0) {
-                    continue;
-                }
-                if (keysEqual(off, key)) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        private int findFreeIndex() {
-            for (int i = 0; i < bucketCapacity; i++) {
-                int off = entryOffset(i);
-                int status = buffer.getInt(off);
-                if (status == 0) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        byte[] get(byte[] key) {
-            int idx = findEntryIndex(key);
-            if (idx < 0) {
-                return null;
-            }
-            int off = entryOffset(idx);
-            int valueLen = buffer.getInt(off + 8);
-            int valueStart = off + 12 + maxKeyBytes;
-            byte[] value = new byte[valueLen];
-            for (int i = 0; i < valueLen; i++) {
-                value[i] = buffer.get(valueStart + i);
-            }
-            return value;
-        }
-
-        boolean insertOrUpdate(byte[] key, byte[] value) {
-            if (key.length > maxKeyBytes) {
-                throw new IllegalArgumentException("Key too large: " + key.length + " > " + maxKeyBytes);
-            }
-            if (value.length > maxValueBytes) {
-                throw new IllegalArgumentException("Value too large: " + value.length + " > " + maxValueBytes);
-            }
-
-            int idx = findEntryIndex(key);
-            if (idx >= 0) {
-                writeEntry(idx, key, value);
-                force();
-                return false;
-            }
-
-            int free = findFreeIndex();
-            if (free < 0) {
-                return false;
-            }
-
-            writeEntry(free, key, value);
-            force();
-            return true;
-        }
-
-        byte[] remove(byte[] key) {
-            int idx = findEntryIndex(key);
-            if (idx < 0) {
-                return null;
-            }
-            int off = entryOffset(idx);
-            int valueLen = buffer.getInt(off + 8);
-            int valueStart = off + 12 + maxKeyBytes;
-            byte[] value = new byte[valueLen];
-            for (int i = 0; i < valueLen; i++) {
-                value[i] = buffer.get(valueStart + i);
-            }
-
-            // Mark as empty
-            writeInt(off, 0);
-            force();
-            return value;
-        }
-
-        void writeEntry(int index, byte[] key, byte[] value) {
-            int off = entryOffset(index);
-            writeInt(off, 1); // status = used
-            writeInt(off + 4, key.length);
-            writeInt(off + 8, value.length);
-
-            int keyStart = off + 12;
-            for (int i = 0; i < maxKeyBytes; i++) {
-                byte b = i < key.length ? key[i] : 0;
-                buffer.put(keyStart + i, b);
-            }
-
-            int valueStart = keyStart + maxKeyBytes;
-            for (int i = 0; i < maxValueBytes; i++) {
-                byte b = i < value.length ? value[i] : 0;
-                buffer.put(valueStart + i, b);
-            }
-        }
-
-        void redistributeEntries(ExtendibleHashTable table) {
-            for (int i = 0; i < bucketCapacity; i++) {
-                int off = entryOffset(i);
-                int status = buffer.getInt(off);
-                if (status == 0) {
-                    continue;
-                }
-                int keyLen = buffer.getInt(off + 4);
-                int valueLen = buffer.getInt(off + 8);
-                int keyStart = off + 12;
-                int valueStart = keyStart + maxKeyBytes;
-                byte[] key = new byte[keyLen];
-                byte[] value = new byte[valueLen];
-                for (int j = 0; j < keyLen; j++) {
-                    key[j] = buffer.get(keyStart + j);
-                }
-                for (int j = 0; j < valueLen; j++) {
-                    value[j] = buffer.get(valueStart + j);
-                }
-                writeInt(off, 0);
-                table.insertDuringSplit(key, value);
-            }
-            force();
-        }
-
-        void force() {
-            buffer.force();
-        }
-
-        void close() {
-            try {
-                channel.close();
-            } catch (IOException e) {
-                // ignore
-            }
-        }
-    }
 
     public ExtendibleHashTable(Path baseDir) {
         this(baseDir, DEFAULT_BUCKET_CAPACITY, DEFAULT_MAX_KEY_BYTES, DEFAULT_MAX_VALUE_BYTES);
@@ -318,9 +58,9 @@ public class ExtendibleHashTable {
         initMetadataAndState();
     }
 
-    private Bucket createBucket(int id, int localDepth) {
+    private ExtendibleHashTableBucket createBucket(int id, int localDepth) {
         Path file = baseDir.resolve("bucket_" + id + ".dat");
-        return new Bucket(id, localDepth, bucketCapacity, maxKeyBytes, maxValueBytes, file);
+        return new ExtendibleHashTableBucket(id, localDepth, bucketCapacity, maxKeyBytes, maxValueBytes, file);
     }
 
     private void initMetadataAndState() {
@@ -330,8 +70,7 @@ public class ExtendibleHashTable {
                     metaPath,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.READ,
-                    StandardOpenOption.WRITE
-            );
+                    StandardOpenOption.WRITE);
             if (metaChannel.size() < META_FILE_SIZE) {
                 metaChannel.truncate(META_FILE_SIZE);
             }
@@ -368,7 +107,7 @@ public class ExtendibleHashTable {
                 return;
             }
 
-            this.directory = new Bucket[dirSize];
+            this.directory = new ExtendibleHashTableBucket[dirSize];
             int offset = 36;
             for (int i = 0; i < dirSize; i++) {
                 int bucketId = metaBuffer.getInt(offset + i * 4);
@@ -384,8 +123,8 @@ public class ExtendibleHashTable {
         this.size = 0;
         this.nextBucketId = 1;
 
-        Bucket initial = createBucket(0, 1);
-        this.directory = new Bucket[1 << globalDepth];
+        ExtendibleHashTableBucket initial = createBucket(0, 1);
+        this.directory = new ExtendibleHashTableBucket[1 << globalDepth];
         for (int i = 0; i < directory.length; i++) {
             directory[i] = initial;
         }
@@ -436,8 +175,8 @@ public class ExtendibleHashTable {
 
     private void doubleDirectory() {
         int oldSize = directory.length;
-        Bucket[] old = directory;
-        directory = new Bucket[oldSize * 2];
+        ExtendibleHashTableBucket[] old = directory;
+        directory = new ExtendibleHashTableBucket[oldSize * 2];
         for (int i = 0; i < oldSize; i++) {
             directory[i] = old[i];
             directory[i + oldSize] = old[i];
@@ -447,15 +186,15 @@ public class ExtendibleHashTable {
     }
 
     private void splitBucket(int bucketIndex) {
-        Bucket bucket = directory[bucketIndex];
+        ExtendibleHashTableBucket bucket = directory[bucketIndex];
 
         if (bucket.localDepth() == globalDepth) {
             doubleDirectory();
         }
 
-        Bucket oldBucket = bucket;
+        ExtendibleHashTableBucket oldBucket = bucket;
         int newLocalDepth = oldBucket.localDepth() + 1;
-        Bucket newBucket = createBucket(nextBucketId++, newLocalDepth);
+        ExtendibleHashTableBucket newBucket = createBucket(nextBucketId++, newLocalDepth);
         oldBucket.setLocalDepth(newLocalDepth);
 
         int bit = 1 << (newLocalDepth - 1);
@@ -474,10 +213,10 @@ public class ExtendibleHashTable {
         flushMetadata();
     }
 
-    private void insertDuringSplit(byte[] key, byte[] value) {
+    void insertDuringSplit(byte[] key, byte[] value) {
         int index = indexFor(key);
-        Bucket target = directory[index];
-        boolean inserted = target.insertOrUpdate(key, value);
+        ExtendibleHashTableBucket target = directory[index];
+        boolean inserted = target.put(key, value);
         if (!inserted) {
             throw new IllegalStateException("Bucket overflow during split redistribution");
         }
@@ -492,7 +231,7 @@ public class ExtendibleHashTable {
             throw new IllegalArgumentException("Null keys are not supported");
         }
         int index = indexFor(key);
-        Bucket bucket = directory[index];
+        ExtendibleHashTableBucket bucket = directory[index];
         return bucket.get(key);
     }
 
@@ -503,16 +242,16 @@ public class ExtendibleHashTable {
 
         while (true) {
             int index = indexFor(key);
-            Bucket bucket = directory[index];
+            ExtendibleHashTableBucket bucket = directory[index];
             byte[] existing = bucket.get(key);
 
             if (existing != null) {
-                bucket.insertOrUpdate(key, value);
+                bucket.put(key, value);
                 flushMetadata();
                 return;
             }
 
-            boolean inserted = bucket.insertOrUpdate(key, value);
+            boolean inserted = bucket.put(key, value);
             if (inserted) {
                 size++;
                 flushMetadata();
@@ -527,7 +266,7 @@ public class ExtendibleHashTable {
             throw new IllegalArgumentException("Null keys are not supported");
         }
         int index = indexFor(key);
-        Bucket bucket = directory[index];
+        ExtendibleHashTableBucket bucket = directory[index];
         byte[] old = bucket.remove(key);
         if (old != null) {
             size--;
@@ -540,7 +279,7 @@ public class ExtendibleHashTable {
         if (directory == null) {
             return;
         }
-        for (Bucket b : directory) {
+        for (ExtendibleHashTableBucket b : directory) {
             if (b != null) {
                 b.close();
             }
