@@ -42,3 +42,30 @@ tasks.register('jmh', JavaExec) {
             'com.ruskaof.algorithm.PerfectHashBenchmark.*',
             'com.ruskaof.algorithm.LshHashTableBenchmark.*']
 }
+
+tasks.register('jmh_extendible', JavaExec) {
+    group = 'benchmark'
+    description = 'Run JMH benchmarks for the app module'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+
+    args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*']
+}
+
+tasks.register('jmh_perfect', JavaExec) {
+    group = 'benchmark'
+    description = 'Run JMH benchmarks for the app module'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+
+    args = ['com.ruskaof.algorithm.PerfectHashBenchmark.*']
+}
+
+tasks.register('jmh_lsh', JavaExec) {
+    group = 'benchmark'
+    description = 'Run JMH benchmarks for the app module'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+
+    args = ['com.ruskaof.algorithm.LshHashTableBenchmark.*']
+}

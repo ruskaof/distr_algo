@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 1, time = 1)
-@Measurement(iterations = 1, time = 1)
+@Measurement(iterations = 1, time = 10000000)
 @Fork(1)
 public class LshHashTableBenchmark {
 
@@ -51,19 +51,19 @@ public class LshHashTableBenchmark {
         }
     }
 
-    @Benchmark
-    public List<List<Integer>> benchmarkReadBuckets() {
-        return lsh.read();
-    }
+    // @Benchmark
+    // public List<List<Integer>> benchmarkReadBuckets() {
+    //     return lsh.read();
+    // }
 
-    @Benchmark
-    public void benchmarkAddVector() {
-        double[] v = new double[dimension];
-        for (int d = 0; d < dimension; d++) {
-            v[d] = random.nextGaussian();
-        }
-        lsh.add(v);
-    }
+    // @Benchmark
+    // public void benchmarkAddVector() {
+    //     double[] v = new double[dimension];
+    //     for (int d = 0; d < dimension; d++) {
+    //         v[d] = random.nextGaussian();
+    //     }
+    //     lsh.add(v);
+    // }
 
     @Benchmark
     public LshHashTable benchmarkBuildTable() {

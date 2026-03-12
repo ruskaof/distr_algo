@@ -18,6 +18,10 @@
 
 ![Extendible Hash Table Get](./graphs/hashes/extendible_hash_get.png)
 
+Профилирование
+
+
+
 ## Perfect Hash
 
 Создание в матожидании работает за O(n)
@@ -41,3 +45,4 @@
 Вставка O(1)
 
 ![LSH Hash Table Add](./graphs/hashes/lsh_put.png)
+
