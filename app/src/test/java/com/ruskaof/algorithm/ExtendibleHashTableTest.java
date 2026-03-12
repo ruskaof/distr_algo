@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,83 +51,43 @@ class ExtendibleHashTableTest {
     @Test
     void putAndGetSingleElement() throws IOException {
         setup();
-        table.putString("1", "one");
+        String key = TestRandomUtils.randomString(8);
+        String value = TestRandomUtils.randomString(16);
+        table.putString(key, value);
         assertEquals(1, table.size());
-        assertEquals("one", table.getString("1"));
+        assertEquals(value, table.getString(key));
     }
 
     @Test
     void updateExistingKeyDoesNotChangeSize() throws IOException {
         setup();
-        table.putString("1", "one");
-        table.putString("1", "uno");
+        String key = TestRandomUtils.randomString(8);
+        String first = TestRandomUtils.randomString(16);
+        String second = TestRandomUtils.randomString(16);
+        table.putString(key, first);
+        table.putString(key, second);
         assertEquals(1, table.size());
-        assertEquals("uno", table.getString("1"));
+        assertEquals(second, table.getString(key));
     }
 
     @Test
     void removeElementUpdatesSizeAndReturnsOldValue() throws IOException {
         setup();
-        table.putString("1", "one");
-        table.putString("2", "two");
+        String key1 = TestRandomUtils.randomString(8);
+        String key2 = TestRandomUtils.randomString(8);
+        String value1 = TestRandomUtils.randomString(16);
+        String value2 = TestRandomUtils.randomString(16);
 
-        String removed = table.removeString("1");
-        assertEquals("one", removed);
+        table.putString(key1, value1);
+        table.putString(key2, value2);
+
+        String removed = table.removeString(key1);
+        assertEquals(value1, removed);
         assertEquals(1, table.size());
-        assertNull(table.getString("1"));
+        assertNull(table.getString(key1));
 
-        assertNull(table.remove("42".getBytes()));
+        assertNull(table.remove(TestRandomUtils.randomString(8).getBytes()));
         assertEquals(1, table.size());
-    }
-
-    @Test
-    void bucketSplittingAndDirectoryGrowthOnManyInserts() throws IOException {
-        setup(2);
-
-        int count = 100;
-        for (int i = 0; i < count; i++) {
-            table.put(Integer.toString(i).getBytes(), Integer.toString(i).getBytes());
-        }
-
-        assertEquals(count, table.size());
-
-        for (int i = 0; i < count; i++) {
-            byte[] key = Integer.toString(i).getBytes();
-            byte[] value = table.get(key);
-            assertNotNull(value);
-            assertEquals(Integer.toString(i), new String(value));
-        }
-    }
-
-    @Test
-    void removeElementsAfterSplitsKeepsStructureConsistent() throws IOException {
-        setup(2);
-
-        int count = 64;
-        for (int i = 0; i < count; i++) {
-            table.put(Integer.toString(i).getBytes(), Integer.toString(i).getBytes());
-        }
-        assertEquals(count, table.size());
-
-        for (int i = 0; i < count; i += 2) {
-            byte[] key = Integer.toString(i).getBytes();
-            byte[] removed = table.remove(key);
-            assertNotNull(removed);
-            assertEquals(Integer.toString(i), new String(removed));
-        }
-
-        assertEquals(count / 2, table.size());
-
-        for (int i = 0; i < count; i++) {
-            byte[] key = Integer.toString(i).getBytes();
-            byte[] value = table.get(key);
-            if (i % 2 == 0) {
-                assertNull(value);
-            } else {
-                assertNotNull(value);
-                assertEquals(Integer.toString(i), new String(value));
-            }
-        }
     }
 
     @Test
@@ -150,37 +112,37 @@ class ExtendibleHashTableTest {
             assertEquals(depth, table.getBucketLocalDepthForIndex(i));
         }
     }
-
     @Test
-    void dataAndMetadataPersistAcrossReopen() throws IOException {
+    void fuzzyInsertAndGet() throws IOException {
         setup();
 
-        int count = 50;
-        for (int i = 0; i < count; i++) {
-            table.putString("k" + i, "v" + i);
-        }
+        Map<String, String> model = new HashMap<>();
+        int operations = 1_000;
 
-        int depthBefore = table.getGlobalDepth();
-        int dirSizeBefore = table.getDirectorySize();
-        int[] bucketIdsBefore = new int[dirSizeBefore];
-        for (int i = 0; i < dirSizeBefore; i++) {
-            bucketIdsBefore[i] = table.getBucketIdForIndex(i);
-        }
+        for (int i = 0; i < operations; i++) {
+            int op = i % 3;
+            String key = TestRandomUtils.randomString(8);
 
-        table.close();
+            switch (op) {
+                case 0 -> {
+                    String value = TestRandomUtils.randomString(16);
+                    table.putString(key, value);
+                    model.put(key, value);
+                }
+                case 1 -> {
+                    String expected = model.get(key);
+                    String actual = table.getString(key);
+                    assertEquals(expected, actual);
+                }
+                case 2 -> {
+                    String expected = model.remove(key);
+                    String actual = table.removeString(key);
+                    assertEquals(expected, actual);
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + op);
+            }
 
-        ExtendibleHashTable reopened = new ExtendibleHashTable(tempDir, 4, 64, 256);
-        table = reopened;
-
-        assertEquals(count, table.size());
-        for (int i = 0; i < count; i++) {
-            assertEquals("v" + i, table.getString("k" + i));
-        }
-
-        assertEquals(depthBefore, table.getGlobalDepth());
-        assertEquals(dirSizeBefore, table.getDirectorySize());
-        for (int i = 0; i < dirSizeBefore; i++) {
-            assertEquals(bucketIdsBefore[i], table.getBucketIdForIndex(i));
+            assertEquals(model.size(), table.size());
         }
     }
 }

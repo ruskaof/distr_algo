@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -29,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class ExtendibleHashTableBenchmark {
 
-    @Param({"100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300"})
+    @Param({ "100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300" })
     public int entryCount;
 
     private ExtendibleHashTable table;

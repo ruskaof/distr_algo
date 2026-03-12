@@ -4,13 +4,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class LshHashTableTest {
-
-    private static final Random RANDOM = new Random();
 
     @Test
     void emptyIndexHasSizeZeroAndNoCandidates() {
@@ -47,7 +44,7 @@ class LshHashTableTest {
         for (int i = 0; i < count; i++) {
             double[] v = new double[dim];
             for (int d = 0; d < dim; d++) {
-                v[d] = RANDOM.nextGaussian();
+                v[d] = TestRandomUtils.randomGaussian();
             }
             vectors.add(v);
             int id = lsh.add(v);
@@ -71,7 +68,7 @@ class LshHashTableTest {
         for (int i = 0; i < 10; i++) {
             double[] v = new double[dim];
             for (int d = 0; d < dim; d++) {
-                v[d] = RANDOM.nextGaussian();
+                v[d] = TestRandomUtils.randomGaussian();
             }
             initial.add(v);
         }
@@ -101,7 +98,7 @@ class LshHashTableTest {
         for (int i = 0; i < baseCount; i++) {
             double[] base = new double[dim];
             for (int d = 0; d < dim; d++) {
-                base[d] = RANDOM.nextGaussian();
+                base[d] = TestRandomUtils.randomGaussian();
             }
 
             List<Integer> groupIds = new ArrayList<>();
@@ -134,7 +131,7 @@ class LshHashTableTest {
 
         double[] base = new double[dim];
         for (int d = 0; d < dim; d++) {
-            base[d] = RANDOM.nextGaussian();
+            base[d] = TestRandomUtils.randomGaussian();
         }
 
         double epsilon = 0.01;
@@ -142,8 +139,8 @@ class LshHashTableTest {
             double[] v1 = new double[dim];
             double[] v2 = new double[dim];
             for (int d = 0; d < dim; d++) {
-                double delta1 = (RANDOM.nextDouble() * 2 - 1) * epsilon;
-                double delta2 = (RANDOM.nextDouble() * 2 - 1) * epsilon;
+                double delta1 = (TestRandomUtils.randomDouble() * 2 - 1) * epsilon;
+                double delta2 = (TestRandomUtils.randomDouble() * 2 - 1) * epsilon;
                 v1[d] = base[d] + delta1;
                 v2[d] = base[d] + delta2;
             }

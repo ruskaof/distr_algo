@@ -18,41 +18,48 @@ class PerfectHashTest {
     }
 
     @Test
-    void singleKeyIsStoredAndRetrievable() {
-        PerfectHash<String, String> ph = new PerfectHash<>(Map.of("a", "value"));
-        assertEquals(1, ph.size()); 
-        assertEquals("value", ph.get("a"));
+    void singleRandomKeyIsStoredAndRetrievable() {
+        String key = UUID.randomUUID().toString();
+        String value = TestRandomUtils.randomStringInRange(8, 7);
+        PerfectHash<String, String> ph = new PerfectHash<>(Map.of(key, value));
+        assertEquals(1, ph.size());
+        assertEquals(value, ph.get(key));
     }
 
     @Test
-    void multipleKeysAreStoredWithoutCollisions() {
+    void multipleRandomKeysAreStoredWithoutCollisions() {
         Map<String, Integer> data = new HashMap<>();
-        for (int i = 0; i < 100; i++) {
-            data.put("key-" + i, i);
+        int count = 200;
+        for (int i = 0; i < count; i++) {
+            data.put(UUID.randomUUID().toString(), i);
         }
 
         PerfectHash<String, Integer> ph = new PerfectHash<>(data);
 
         assertEquals(data.size(), ph.size());
-        for (int i = 0; i < 100; i++) {
-            String k = "key-" + i;
-            assertEquals(i, ph.get(k));
+        for (Map.Entry<String, Integer> e : data.entrySet()) {
+            assertEquals(e.getValue(), ph.get(e.getKey()));
         }
     }
 
     @Test
-    void randomKeysWorkCorrectly() {
-        Map<String, String> data = new HashMap<>();
-        for (int i = 0; i < 1_000; i++) {
-            data.put(UUID.randomUUID().toString(), "v-" + i);
-        }
+    void fuzzyInsertAndGet() {
+        int rounds = 20;
+        int perRound = 200;
 
-        PerfectHash<String, String> ph = new PerfectHash<>(data);
+        for (int r = 0; r < rounds; r++) {
+            Map<String, String> data = new HashMap<>();
+            for (int i = 0; i < perRound; i++) {
+                data.put(UUID.randomUUID().toString(), TestRandomUtils.randomStringInRange(8, 7));
+            }
 
-        for (Map.Entry<String, String> e : data.entrySet()) {
-            String k = e.getKey();
-            assertEquals(e.getValue(), ph.get(k));
+            PerfectHash<String, String> ph = new PerfectHash<>(data);
+
+            for (Map.Entry<String, String> e : data.entrySet()) {
+                assertEquals(e.getValue(), ph.get(e.getKey()));
+            }
         }
     }
+
 }
 
