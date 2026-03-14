@@ -9,3 +9,6 @@ build
 # ignore java build files inside app/build
 app/build/**
 app/bin/**
+
+bench
+.idea
