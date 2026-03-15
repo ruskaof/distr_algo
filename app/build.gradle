@@ -34,7 +34,14 @@ tasks.named('test') {
 
 def jmhResultsDir = layout.buildDirectory.dir('jmh-results')
 
+tasks.register('jmhResultsDir') {
+    doLast {
+        jmhResultsDir.get().asFile.mkdirs()
+    }
+}
+
 tasks.register('jmh', JavaExec) {
+    dependsOn 'jmhResultsDir'
     group = 'benchmark'
     description = 'Run all JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
@@ -48,6 +55,7 @@ tasks.register('jmh', JavaExec) {
 }
 
 tasks.register('jmh_extendible', JavaExec) {
+    dependsOn 'jmhResultsDir'
     group = 'benchmark'
     description = 'Run ExtendibleHashTable JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
@@ -59,6 +67,7 @@ tasks.register('jmh_extendible', JavaExec) {
 }
 
 tasks.register('jmh_perfect', JavaExec) {
+    dependsOn 'jmhResultsDir'
     group = 'benchmark'
     description = 'Run PerfectHash JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
@@ -70,6 +79,7 @@ tasks.register('jmh_perfect', JavaExec) {
 }
 
 tasks.register('jmh_lsh', JavaExec) {
+    dependsOn 'jmhResultsDir'
     group = 'benchmark'
     description = 'Run LshHashTable JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
