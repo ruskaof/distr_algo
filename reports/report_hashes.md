@@ -20,9 +20,6 @@
 
 Для реализации алгоритмов был использован язык программирования Java.
 
-- [Perfect Hash](../app/src/main/java/com/ruskaof/algorithm/PerfectHash.java)
-- [LSH Hash Table](../app/src/main/java/com/ruskaof/algorithm/LshHashTable.java)
-
 ### Extendible Hash Table
 
 [Extendible Hash Table](../app/src/main/java/com/ruskaof/algorithm/ExtendibleHashTable.java)
@@ -70,6 +67,8 @@
 Похоже, что наш код не производит никаких аллокаций. Только при работе с бакетом есть аллокации на get, но вероятнее всего все они связаны с работой с буфером mmap.
 
 ### Pefrect Hash
+
+- [Perfect Hash](../app/src/main/java/com/ruskaof/algorithm/PerfectHash.java)
 
 Используется классическая реализация с одной вложенной хеш таблицей:
 
@@ -119,6 +118,8 @@
 По сути, нет аллокаций вовсе
 
 ### LSH
+
+- [LSH Hash Table](../app/src/main/java/com/ruskaof/algorithm/LshHashTable.java)
 
 Выполнена реализация, которая схожие точки в векторном пространстве складывает в общие бакеты. Хеш функции - плоскости, параллельные некоторой оси координат. Реализация предполагает любую размерность векторов.
 
