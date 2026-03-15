@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(3)
 public class ExtendibleHashTableBenchmark {
 
-    @Param({ "2300" })
+    @Param({ "100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300" })
     public int entryCount;
 
     private static final int KEY_LENGTH = 16;

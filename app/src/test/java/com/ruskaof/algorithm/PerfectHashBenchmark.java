@@ -27,7 +27,8 @@ import java.util.concurrent.TimeUnit;
 @Fork(3)
 public class PerfectHashBenchmark {
 
-    @Param({ "2900" })
+    @Param({ "100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300", "2500", "2700",
+            "2900" })
     public int entryCount;
 
     private static final int KEY_LENGTH = 16;
@@ -60,7 +61,10 @@ public class PerfectHashBenchmark {
         return perfectHash.get(keys[i]);
     }
 
-    /** Always looks up the same key (same entry/bucket); verifies O(1) with good cache locality. */
+    /**
+     * Always looks up the same key (same entry/bucket); verifies O(1) with good
+     * cache locality.
+     */
     @Benchmark
     public byte[] benchmarkGetSameEntry() {
         return perfectHash.get(keys[0]);
