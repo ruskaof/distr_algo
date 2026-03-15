@@ -32,40 +32,50 @@ tasks.named('test') {
 }
 
 
+def jmhResultsDir = layout.buildDirectory.dir('jmh-results')
+
 tasks.register('jmh', JavaExec) {
     group = 'benchmark'
-    description = 'Run JMH benchmarks for the app module'
+    description = 'Run all JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
 
     args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*',
             'com.ruskaof.algorithm.PerfectHashBenchmark.*',
-            'com.ruskaof.algorithm.LshHashTableBenchmark.*']
+            'com.ruskaof.algorithm.LshHashTableBenchmark.*',
+            '-rf', 'csv',
+            '-rff', jmhResultsDir.get().file('jmh-all.csv').asFile.absolutePath]
 }
 
 tasks.register('jmh_extendible', JavaExec) {
     group = 'benchmark'
-    description = 'Run JMH benchmarks for the app module'
+    description = 'Run ExtendibleHashTable JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
 
-    args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*']
+    args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*',
+            '-rf', 'csv',
+            '-rff', jmhResultsDir.get().file('jmh-extendible.csv').asFile.absolutePath]
 }
 
 tasks.register('jmh_perfect', JavaExec) {
     group = 'benchmark'
-    description = 'Run JMH benchmarks for the app module'
+    description = 'Run PerfectHash JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
 
-    args = ['com.ruskaof.algorithm.PerfectHashBenchmark.*']
+    args = ['com.ruskaof.algorithm.PerfectHashBenchmark.*',
+            '-rf', 'csv',
+            '-rff', jmhResultsDir.get().file('jmh-perfect.csv').asFile.absolutePath]
 }
 
 tasks.register('jmh_lsh', JavaExec) {
     group = 'benchmark'
-    description = 'Run JMH benchmarks for the app module'
+    description = 'Run LshHashTable JMH benchmarks'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
 
-    args = ['com.ruskaof.algorithm.LshHashTableBenchmark.*']
+    args = ['com.ruskaof.algorithm.LshHashTableBenchmark.*',
+            '-rf', 'csv',
+            '-rff', jmhResultsDir.get().file('jmh-lsh.csv').asFile.absolutePath]
 }

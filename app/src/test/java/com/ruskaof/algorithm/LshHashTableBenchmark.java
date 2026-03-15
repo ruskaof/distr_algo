@@ -21,8 +21,8 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 1, time = 1)
-@Measurement(iterations = 1, time = 1)
-@Fork(1)
+@Measurement(iterations = 3, time = 1)
+@Fork(3)
 public class LshHashTableBenchmark {
 
     @Param({"100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300", "2500", "2700", "2900"})

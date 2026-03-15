@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,49 +52,49 @@ class ExtendibleHashTableTest {
     @Test
     void putAndGetSingleElement() throws IOException {
         setup();
-        String key = TestRandomUtils.randomString(8);
-        String value = TestRandomUtils.randomString(16);
-        table.putString(key, value);
+        byte[] key = TestRandomUtils.randomBytes(8);
+        byte[] value = TestRandomUtils.randomBytes(16);
+        table.put(key, value);
         assertEquals(1, table.size());
-        assertEquals(value, table.getString(key));
+        assertArrayEquals(value, table.get(key));
     }
 
     @Test
     void updateExistingKeyDoesNotChangeSize() throws IOException {
         setup();
-        String key = TestRandomUtils.randomString(8);
-        String first = TestRandomUtils.randomString(16);
-        String second = TestRandomUtils.randomString(16);
-        table.putString(key, first);
-        table.putString(key, second);
+        byte[] key = TestRandomUtils.randomBytes(8);
+        byte[] first = TestRandomUtils.randomBytes(16);
+        byte[] second = TestRandomUtils.randomBytes(16);
+        table.put(key, first);
+        table.put(key, second);
         assertEquals(1, table.size());
-        assertEquals(second, table.getString(key));
+        assertArrayEquals(second, table.get(key));
     }
 
     @Test
     void removeElementUpdatesSizeAndReturnsOldValue() throws IOException {
         setup();
-        String key1 = TestRandomUtils.randomString(8);
-        String key2 = TestRandomUtils.randomString(8);
-        String value1 = TestRandomUtils.randomString(16);
-        String value2 = TestRandomUtils.randomString(16);
+        byte[] key1 = TestRandomUtils.randomBytes(8);
+        byte[] key2 = TestRandomUtils.randomBytes(8);
+        byte[] value1 = TestRandomUtils.randomBytes(16);
+        byte[] value2 = TestRandomUtils.randomBytes(16);
 
-        table.putString(key1, value1);
-        table.putString(key2, value2);
+        table.put(key1, value1);
+        table.put(key2, value2);
 
-        String removed = table.removeString(key1);
-        assertEquals(value1, removed);
+        byte[] removed = table.remove(key1);
+        assertArrayEquals(value1, removed);
         assertEquals(1, table.size());
-        assertNull(table.getString(key1));
+        assertNull(table.get(key1));
 
-        assertNull(table.remove(TestRandomUtils.randomString(8).getBytes()));
+        assertNull(table.remove(TestRandomUtils.randomBytes(8)));
         assertEquals(1, table.size());
     }
 
     @Test
     void nullKeyNotAllowed() throws IOException {
         setup();
-        assertThrows(IllegalArgumentException.class, () -> table.put(null, "x".getBytes()));
+        assertThrows(IllegalArgumentException.class, () -> table.put(null, new byte[]{1}));
     }
 
     @Test
@@ -112,37 +113,51 @@ class ExtendibleHashTableTest {
             assertEquals(depth, table.getBucketLocalDepthForIndex(i));
         }
     }
+
     @Test
     void fuzzyInsertAndGet() throws IOException {
         setup();
 
-        Map<String, String> model = new HashMap<>();
+        Map<ByteArrayKey, byte[]> model = new HashMap<>();
         int operations = 1_000;
 
         for (int i = 0; i < operations; i++) {
             int op = i % 3;
-            String key = TestRandomUtils.randomString(8);
+            byte[] key = TestRandomUtils.randomBytes(8);
+            ByteArrayKey wrappedKey = new ByteArrayKey(key);
 
             switch (op) {
                 case 0 -> {
-                    String value = TestRandomUtils.randomString(16);
-                    table.putString(key, value);
-                    model.put(key, value);
+                    byte[] value = TestRandomUtils.randomBytes(16);
+                    table.put(key, value);
+                    model.put(wrappedKey, value);
                 }
                 case 1 -> {
-                    String expected = model.get(key);
-                    String actual = table.getString(key);
-                    assertEquals(expected, actual);
+                    byte[] expected = model.get(wrappedKey);
+                    byte[] actual = table.get(key);
+                    assertArrayEquals(expected, actual);
                 }
                 case 2 -> {
-                    String expected = model.remove(key);
-                    String actual = table.removeString(key);
-                    assertEquals(expected, actual);
+                    byte[] expected = model.remove(wrappedKey);
+                    byte[] actual = table.remove(key);
+                    assertArrayEquals(expected, actual);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + op);
             }
 
             assertEquals(model.size(), table.size());
+        }
+    }
+
+    private record ByteArrayKey(byte[] data) {
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof ByteArrayKey other && Arrays.equals(data, other.data);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(data);
         }
     }
 }

@@ -1,0 +1,83 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  bench-extendible:
+    name: Benchmark ExtendibleHashTable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: gradle jmh_extendible
+      - uses: actions/upload-artifact@v4
+        with:
+          name: csv-extendible
+          path: app/build/jmh-results/jmh-extendible.csv
+
+  bench-perfect:
+    name: Benchmark PerfectHash
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: gradle jmh_perfect
+      - uses: actions/upload-artifact@v4
+        with:
+          name: csv-perfect
+          path: app/build/jmh-results/jmh-perfect.csv
+
+  bench-lsh:
+    name: Benchmark LshHashTable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: gradle jmh_lsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: csv-lsh
+          path: app/build/jmh-results/jmh-lsh.csv
+
+  plot:
+    name: Generate plots
+    needs: [ bench-extendible, bench-perfect, bench-lsh ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: csv-*
+          path: results
+          merge-multiple: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install matplotlib
+
+      - run: python visualize_jmh_results.py results
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-plots
+          path: results/jmh-plots/

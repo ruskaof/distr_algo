@@ -24,16 +24,21 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 1, time = 1)
-@Measurement(iterations = 1, time = 1)
-@Fork(1)
+@Measurement(iterations = 3, time = 1)
+@Fork(3)
 public class ExtendibleHashTableBenchmark {
 
     @Param({ "100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300" })
     public int entryCount;
 
+    private static final int KEY_LENGTH = 16;
+    private static final int VALUE_LENGTH = 32;
+
     private ExtendibleHashTable table;
     private Path tempDir;
     private Random random;
+    private byte[][] keys;
+    private byte[][] values;
 
     @Setup(Level.Trial)
     public void setup() throws IOException {
@@ -41,10 +46,14 @@ public class ExtendibleHashTableBenchmark {
         table = new ExtendibleHashTable(tempDir, 8, 64, 256);
         random = new Random();
 
+        keys = new byte[entryCount][];
+        values = new byte[entryCount][];
         for (int i = 0; i < entryCount; i++) {
-            String k = "key-" + i;
-            String v = "value-" + i;
-            table.putString(k, v);
+            keys[i] = new byte[KEY_LENGTH];
+            values[i] = new byte[VALUE_LENGTH];
+            random.nextBytes(keys[i]);
+            random.nextBytes(values[i]);
+            table.put(keys[i], values[i]);
         }
     }
 
@@ -66,25 +75,25 @@ public class ExtendibleHashTableBenchmark {
     }
 
     @Benchmark
-    public String benchmarkGetExisting() {
+    public byte[] benchmarkGetExisting() {
         int i = random.nextInt(entryCount);
-        String key = "key-" + i;
-        return table.getString(key);
+        return table.get(keys[i]);
     }
 
     @Benchmark
     public void benchmarkPutUpdateExisting() {
         int i = random.nextInt(entryCount);
-        String key = "key-" + i;
-        String value = "value-updated-" + i;
-        table.putString(key, value);
+        byte[] newValue = new byte[VALUE_LENGTH];
+        random.nextBytes(newValue);
+        table.put(keys[i], newValue);
     }
 
     @Benchmark
     public void benchmarkPutNewKeys() {
-        int i = entryCount + random.nextInt(entryCount);
-        String key = "insert-key-" + i;
-        String value = "insert-value-" + i;
-        table.putString(key, value);
+        byte[] key = new byte[KEY_LENGTH];
+        byte[] value = new byte[VALUE_LENGTH];
+        random.nextBytes(key);
+        random.nextBytes(value);
+        table.put(key, value);
     }
 }

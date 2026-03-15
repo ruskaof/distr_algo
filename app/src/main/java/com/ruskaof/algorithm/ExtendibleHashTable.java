@@ -317,17 +317,4 @@ public class ExtendibleHashTable {
         return directory[index].localDepth();
     }
 
-    public void putString(String key, String value) {
-        put(key.getBytes(), value.getBytes());
-    }
-
-    public String getString(String key) {
-        byte[] value = get(key.getBytes());
-        return value == null ? null : new String(value);
-    }
-
-    public String removeString(String key) {
-        byte[] value = remove(key.getBytes());
-        return value == null ? null : new String(value);
-    }
 }
