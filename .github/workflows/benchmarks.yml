@@ -3,8 +3,14 @@ name: Benchmarks
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - 'app/src/main/java/**'
+      - 'app/src/test/java/**'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'app/src/main/java/**'
+      - 'app/src/test/java/**'
   workflow_dispatch:
 
 jobs:
