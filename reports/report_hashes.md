@@ -53,6 +53,10 @@
 
 ![Extendible Hash Table Get](../graphs/hashes/extendible_get.png)
 
+На графике ниже результаты бенчмарка, где каждый раз используется один и тот же ключ, что подтверждает теорию
+
+![](../graphs/hashes/extendible_get_same.png)
+
 Профилирование CPU получения:
 
 ![Extendible Hash Table Get CPU](../graphs/hashes/extendible_get_prof.png)
@@ -97,6 +101,10 @@
 Алгоритмическая сложность - O(1), однако в бенчмарке заметная линейная зависимость. Предоложительно, опять влияние cache locality.
 
 ![](../graphs/hashes/perfect_get.png)
+
+На графике ниже результаты бенчмарка, где каждый раз используется один и тот же ключ, что подтверждает теорию
+
+![](../graphs/hashes/perfect_get_same.png)
 
 Профилирование CPU получения:
 
