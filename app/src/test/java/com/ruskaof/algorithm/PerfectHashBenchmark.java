@@ -61,10 +61,6 @@ public class PerfectHashBenchmark {
         return perfectHash.get(keys[i]);
     }
 
-    /**
-     * Always looks up the same key (same entry/bucket); verifies O(1) with good
-     * cache locality.
-     */
     @Benchmark
     public byte[] benchmarkGetSameEntry() {
         return perfectHash.get(keys[0]);

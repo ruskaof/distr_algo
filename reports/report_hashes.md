@@ -1,6 +1,13 @@
-# Отчет по лаборатороной работе №1
+# Отчет по лабораторной работе №1
 
 Студент: Русинов Дмитрий
+
+Содержание:
+- [Задание](#задание)
+- [Выполнение](#выполнение)
+- [Extendible Hash Table](#extendible-hash-table)
+- [Perfect Hash](#perfect-hash)
+- [LSH](#lsh)
 
 ## Задание
 
@@ -66,7 +73,7 @@
 
 Похоже, что наш код не производит никаких аллокаций. Только при работе с бакетом есть аллокации на get, но вероятнее всего все они связаны с работой с буфером mmap.
 
-### Pefrect Hash
+### Perfect Hash
 
 - [Perfect Hash](../app/src/main/java/com/ruskaof/algorithm/PerfectHash.java)
 

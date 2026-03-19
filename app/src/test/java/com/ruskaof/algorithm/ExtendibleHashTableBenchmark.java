@@ -80,7 +80,6 @@ public class ExtendibleHashTableBenchmark {
         return table.get(keys[i]);
     }
 
-    /** Always looks up the same key (same entry/bucket); verifies O(1) with good cache locality. */
     @Benchmark
     public byte[] benchmarkGetSameEntry() {
         return table.get(keys[0]);
