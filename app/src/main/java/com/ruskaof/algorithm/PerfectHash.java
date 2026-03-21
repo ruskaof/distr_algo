@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
+
 
 @SuppressWarnings("unchecked")
 public final class PerfectHash<K, V> {
@@ -28,12 +29,13 @@ public final class PerfectHash<K, V> {
         int chosenA1;
         int chosenB1;
         SecondaryTable<K, V>[] chosenBuckets;
+        Random rng = new Random();
 
         outer: while (true) {
             List<Map.Entry<K, V>>[] bucketLists = (List<Map.Entry<K, V>>[]) new List[m];
 
-            int aCandidate = ThreadLocalRandom.current().nextInt(1, PRIME);
-            int bCandidate = ThreadLocalRandom.current().nextInt(PRIME);
+            int aCandidate = rng.nextInt(1, PRIME);
+            int bCandidate = rng.nextInt(PRIME);
 
             for (Map.Entry<K, V> e : entries.entrySet()) {
                 K key = e.getKey();
@@ -58,7 +60,7 @@ public final class PerfectHash<K, V> {
                 }
             }
 
-            if (sumSquares > 4L * n) {
+            if (sumSquares > 10L * n) {
                 continue;
             }
 
@@ -101,22 +103,27 @@ public final class PerfectHash<K, V> {
         private final int b2;
         private final int tableSize;
 
+        private static final int SECONDARY_MAX_RETRIES = 100;
+
         SecondaryTable(List<Map.Entry<K, V>> entries) {
             int n = entries.size();
             int m = n * n;
 
-            Object[] chosenKeys;
-            Object[] chosenValues;
-            int chosenA;
-            int chosenB;
+            Object[] chosenKeys = new Object[m];
+            Object[] chosenValues = new Object[m];
+            int chosenA = 1;
+            int chosenB = 0;
 
-            outer: while (true) {
+            Random rng = new Random();
+
+            for (int attempt = 0; attempt < SECONDARY_MAX_RETRIES; attempt++) {
                 chosenKeys = new Object[m];
                 chosenValues = new Object[m];
 
-                int aCandidate = ThreadLocalRandom.current().nextInt(1, PRIME);
-                int bCandidate = ThreadLocalRandom.current().nextInt(PRIME);
+                int aCandidate = rng.nextInt(1, PRIME);
+                int bCandidate = rng.nextInt(PRIME);
 
+                boolean collision = false;
                 for (Map.Entry<K, V> e : entries) {
                     Object key = e.getKey();
                     int idx = indexForSecondary(key, aCandidate, bCandidate, m);
@@ -125,7 +132,8 @@ public final class PerfectHash<K, V> {
                         chosenKeys[idx] = key;
                         chosenValues[idx] = e.getValue();
                     } else if (!existingKey.equals(key)) {
-                        continue outer;
+                        collision = true;
+                        break;
                     } else {
                         chosenValues[idx] = e.getValue();
                     }
@@ -133,7 +141,21 @@ public final class PerfectHash<K, V> {
 
                 chosenA = aCandidate;
                 chosenB = bCandidate;
-                break;
+
+                if (!collision) {
+                    break;
+                }
+
+                if (attempt == SECONDARY_MAX_RETRIES - 1) {
+                    chosenKeys = new Object[m];
+                    chosenValues = new Object[m];
+                    for (Map.Entry<K, V> e : entries) {
+                        Object key = e.getKey();
+                        int idx = indexForSecondary(key, chosenA, chosenB, m);
+                        chosenKeys[idx] = key;
+                        chosenValues[idx] = e.getValue();
+                    }
+                }
             }
 
             this.keys = chosenKeys;

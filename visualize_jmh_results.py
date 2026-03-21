@@ -1,8 +1,12 @@
 import csv
+import sys
 from collections import defaultdict
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+
+
+ERROR_COL = "Score Error (99.9%)"
 
 
 def load_jmh_csv(path: Path):
@@ -26,6 +30,16 @@ def detect_param_column(rows, param_name: str) -> str:
     )
 
 
+def _parse_error(row) -> float:
+    raw = row.get(ERROR_COL, "").strip()
+    if not raw or raw in ("NaN", "N/A", ""):
+        return 0.0
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.0
+
+
 def plot_benchmark_vs_param(rows, benchmark_filter: str, param_name: str, out_dir: Path):
     filtered = [r for r in rows if benchmark_filter in r["Benchmark"]]
     if not filtered:
@@ -39,10 +53,11 @@ def plot_benchmark_vs_param(rows, benchmark_filter: str, param_name: str, out_di
         try:
             x = float(r[param_col].replace("_", ""))
             y = float(r["Score"])
+            err = _parse_error(r)
         except (ValueError, KeyError):
             continue
         key = r["Benchmark"]
-        grouped[key].append((x, y, r.get("Unit", "")))
+        grouped[key].append((x, y, err, r.get("Unit", "")))
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -52,10 +67,17 @@ def plot_benchmark_vs_param(rows, benchmark_filter: str, param_name: str, out_di
         points.sort(key=lambda t: t[0])
         xs = [p[0] for p in points]
         ys = [p[1] for p in points]
-        unit = points[0][2] if points[0][2] else "time"
+        errs = [p[2] for p in points]
+        unit = points[0][3] if points[0][3] else "time"
+        has_ci = any(e > 0 for e in errs)
 
         plt.figure()
-        plt.plot(xs, ys, marker="o")
+        plt.plot(xs, ys, marker="o", linewidth=1.5, zorder=3)
+        if has_ci:
+            y_lo = [y - e for y, e in zip(ys, errs)]
+            y_hi = [y + e for y, e in zip(ys, errs)]
+            plt.fill_between(xs, y_lo, y_hi, alpha=0.25, label="99.9% CI")
+            plt.legend()
         plt.xlabel(param_name)
         plt.ylabel(f"Score ({unit})")
         plt.title(bench_name)
@@ -68,25 +90,10 @@ def plot_benchmark_vs_param(rows, benchmark_filter: str, param_name: str, out_di
         print(f"Wrote {out_path}")
 
 
-def find_default_csv() -> Path | None:
-    candidates = [
-        Path("app") / "build" / "jmh-results.csv",
-        Path(__file__).parent / "app" / "build" / "jmh-results.csv",
-        Path("jmh-results.csv"),
-    ]
-    for p in candidates:
-        if p.is_file():
-            return p
-    return None
-
-
-def auto_plot_all(csv_path: Path) -> int:
-    rows = load_jmh_csv(csv_path)
+def auto_plot_all(rows, out_dir: Path) -> int:
     if not rows:
-        print(f"No rows found in CSV: {csv_path}")
+        print("No rows to plot.")
         return 1
-
-    out_dir = csv_path.parent / "jmh-plots"
 
     columns = list(rows[0].keys())
     param_cols = [c for c in columns if c.startswith("Param:")]
@@ -127,14 +134,67 @@ def auto_plot_all(csv_path: Path) -> int:
     return 0
 
 
+def collect_csv_files(paths: list[str]) -> list[Path]:
+    """Resolve CLI args into a list of CSV files.
+
+    Each arg can be a file or a directory (scanned for *.csv).
+    """
+    result: list[Path] = []
+    for raw in paths:
+        p = Path(raw)
+        if p.is_file():
+            result.append(p)
+        elif p.is_dir():
+            result.extend(sorted(p.glob("*.csv")))
+    return result
+
+
+def find_default_csvs() -> list[Path]:
+    candidates = [
+        Path("app") / "build" / "jmh-results",
+        Path(__file__).parent / "app" / "build" / "jmh-results",
+    ]
+    for d in candidates:
+        if d.is_dir():
+            csvs = sorted(d.glob("*.csv"))
+            if csvs:
+                return csvs
+
+    single_candidates = [
+        Path("app") / "build" / "jmh-results.csv",
+        Path(__file__).parent / "app" / "build" / "jmh-results.csv",
+        Path("jmh-results.csv"),
+    ]
+    for p in single_candidates:
+        if p.is_file():
+            return [p]
+    return []
+
+
 def main() -> int:
-    csv_path = find_default_csv()
-    if csv_path is None:
+    if len(sys.argv) > 1:
+        csv_files = collect_csv_files(sys.argv[1:])
+    else:
+        csv_files = find_default_csvs()
+
+    if not csv_files:
+        print("No CSV files found. Pass files/directories as arguments or "
+              "place them in app/build/jmh-results/.")
         return 1
 
-    return auto_plot_all(csv_path)
+    all_rows: list[dict] = []
+    for csv_path in csv_files:
+        rows = load_jmh_csv(csv_path)
+        print(f"Loaded {len(rows)} rows from {csv_path}")
+        all_rows.extend(rows)
+
+    if not all_rows:
+        print("All CSV files were empty.")
+        return 1
+
+    out_dir = csv_files[0].parent / "jmh-plots"
+    return auto_plot_all(all_rows, out_dir)
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

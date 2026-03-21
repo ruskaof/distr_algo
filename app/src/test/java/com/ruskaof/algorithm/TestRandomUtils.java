@@ -1,34 +1,32 @@
 package com.ruskaof.algorithm;
 
-import java.util.Map;
+import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.Set;
 
 final class TestRandomUtils {
 
     private static final Random RANDOM = new Random(123456L);
-    private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     private TestRandomUtils() {
     }
 
-    static String randomString(int length) {
-        StringBuilder sb = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
-            sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
-        }
-        return sb.toString();
+    static byte[] randomBytes(int length) {
+        byte[] b = new byte[length];
+        RANDOM.nextBytes(b);
+        return b;
     }
 
-    static String randomStringInRange(int minLength, int maxExtra) {
+    static byte[] randomBytesInRange(int minLength, int maxExtra) {
         int length = minLength + RANDOM.nextInt(maxExtra + 1);
-        return randomString(length);
+        return randomBytes(length);
     }
 
-    static String randomUniqueKey(Map<String, ?> existing, int length) {
-        String key;
+    static ByteBuffer randomUniqueKey(Set<ByteBuffer> existing, int length) {
+        ByteBuffer key;
         do {
-            key = randomString(length);
-        } while (existing.containsKey(key));
+            key = ByteBuffer.wrap(randomBytes(length));
+        } while (existing.contains(key));
         return key;
     }
 
