@@ -1,6 +1,8 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import org.junit.jupiter.api.Test;
+
+import com.ruskaof.algorithm.hash.PerfectHash;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;

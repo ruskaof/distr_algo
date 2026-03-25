@@ -1,4 +1,4 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -13,6 +13,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+
+import com.ruskaof.algorithm.hash.ExtendibleHashTable;
 
 import java.io.IOException;
 import java.nio.file.Files;

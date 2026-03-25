@@ -1,4 +1,4 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import java.io.IOException;
 import java.nio.MappedByteBuffer;

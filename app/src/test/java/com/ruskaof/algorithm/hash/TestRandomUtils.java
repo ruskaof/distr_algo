@@ -1,4 +1,4 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import java.nio.ByteBuffer;
 import java.util.Random;

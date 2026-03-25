@@ -17,7 +17,8 @@ def load_jmh_csv(path: Path):
 
 
 def detect_param_column(rows, param_name: str) -> str:
-    candidates = [param_name, f"Param:{param_name}"]
+    param_name = param_name.strip()
+    candidates = [param_name, f"Param:{param_name}", f"Param: {param_name}"]
     if not rows:
         raise ValueError("No rows in CSV.")
     columns = rows[0].keys()
@@ -109,7 +110,7 @@ def auto_plot_all(rows, out_dir: Path) -> int:
         return 1
 
     param_col = param_cols[0]
-    param_name = param_col.removeprefix("Param:")
+    param_name = param_col.removeprefix("Param:").strip()
 
     by_benchmark = defaultdict(list)
     for r in rows:
@@ -145,18 +146,21 @@ def collect_csv_files(paths: list[str]) -> list[Path]:
         if p.is_file():
             result.append(p)
         elif p.is_dir():
-            result.extend(sorted(p.glob("*.csv")))
-    return result
+            result.extend(sorted(p.rglob("*.csv")))
+    # Keep stable order and remove duplicates.
+    return sorted(set(result))
 
 
 def find_default_csvs() -> list[Path]:
     candidates = [
         Path("app") / "build" / "jmh-results",
         Path(__file__).parent / "app" / "build" / "jmh-results",
+        Path("bench"),
+        Path(__file__).parent / "bench",
     ]
     for d in candidates:
         if d.is_dir():
-            csvs = sorted(d.glob("*.csv"))
+            csvs = sorted(d.rglob("*.csv"))
             if csvs:
                 return csvs
 
@@ -164,6 +168,8 @@ def find_default_csvs() -> list[Path]:
         Path("app") / "build" / "jmh-results.csv",
         Path(__file__).parent / "app" / "build" / "jmh-results.csv",
         Path("jmh-results.csv"),
+        Path("bench") / "geoloc" / "jmh-geoloc.csv",
+        Path(__file__).parent / "bench" / "geoloc" / "jmh-geoloc.csv",
     ]
     for p in single_candidates:
         if p.is_file():
