@@ -14,8 +14,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
-import com.ruskaof.algorithm.hash.ExtendibleHashTable;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,14 +28,16 @@ import java.util.concurrent.TimeUnit;
 @Fork(3)
 public class ExtendibleHashTableBenchmark {
 
-    @Param({ "100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300" })
+    @Param({ "100", "300", "500", "700", "900", "1100", "1300"})
     public int entryCount;
 
     private static final int KEY_LENGTH = 16;
     private static final int VALUE_LENGTH = 32;
 
     private ExtendibleHashTable table;
+    private ExtendibleHashTable tableFlushBatch100;
     private Path tempDir;
+    private Path tempDirBatch100;
     private Random random;
     private byte[][] keys;
     private byte[][] values;
@@ -45,7 +45,9 @@ public class ExtendibleHashTableBenchmark {
     @Setup(Level.Trial)
     public void setup() throws IOException {
         tempDir = Files.createTempDirectory("ext-hash-bench");
+        tempDirBatch100 = Files.createTempDirectory("ext-hash-bench-batch100");
         table = new ExtendibleHashTable(tempDir, 8, 64, 256);
+        tableFlushBatch100 = new ExtendibleHashTable(tempDirBatch100, 8, 64, 256, 100);
         random = new Random();
 
         keys = new byte[entryCount][];
@@ -56,6 +58,7 @@ public class ExtendibleHashTableBenchmark {
             random.nextBytes(keys[i]);
             random.nextBytes(values[i]);
             table.put(keys[i], values[i]);
+            tableFlushBatch100.put(keys[i], values[i]);
         }
     }
 
@@ -64,8 +67,21 @@ public class ExtendibleHashTableBenchmark {
         if (table != null) {
             table.close();
         }
+        if (tableFlushBatch100 != null) {
+            tableFlushBatch100.close();
+        }
         if (tempDir != null) {
             Files.walk(tempDir)
+                    .sorted((a, b) -> b.getNameCount() - a.getNameCount())
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+        }
+        if (tempDirBatch100 != null) {
+            Files.walk(tempDirBatch100)
                     .sorted((a, b) -> b.getNameCount() - a.getNameCount())
                     .forEach(p -> {
                         try {
@@ -102,5 +118,14 @@ public class ExtendibleHashTableBenchmark {
         random.nextBytes(key);
         random.nextBytes(value);
         table.put(key, value);
+    }
+
+    @Benchmark
+    public void benchmarkPutNewKeysFlushBatch100() {
+        byte[] key = new byte[KEY_LENGTH];
+        byte[] value = new byte[VALUE_LENGTH];
+        random.nextBytes(key);
+        random.nextBytes(value);
+        tableFlushBatch100.put(key, value);
     }
 }

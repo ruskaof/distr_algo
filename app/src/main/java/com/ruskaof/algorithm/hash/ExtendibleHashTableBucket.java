@@ -28,6 +28,7 @@ public final class ExtendibleHashTableBucket {
     private final int entryRecordSize;
     private final FileChannel channel;
     private final MappedByteBuffer buffer;
+    private boolean initializedOnCreate = false;
 
     ExtendibleHashTableBucket(int id,
             int localDepth,
@@ -64,6 +65,7 @@ public final class ExtendibleHashTableBucket {
                 writeInt(0, localDepth);
                 writeInt(4, bucketCapacity);
                 clearAllEntries();
+                initializedOnCreate = true;
             } else {
                 // Existing bucket – load header values.
                 this.localDepth = readInt(0);
@@ -88,7 +90,10 @@ public final class ExtendibleHashTableBucket {
     void setLocalDepth(int newDepth) {
         this.localDepth = newDepth;
         writeInt(0, newDepth);
-        force();
+    }
+
+    boolean needsFlushOnCreate() {
+        return initializedOnCreate;
     }
 
     private int entryOffset(int index) {
@@ -108,7 +113,6 @@ public final class ExtendibleHashTableBucket {
             int off = entryOffset(i);
             writeInt(off, 0); // status = 0 (empty)
         }
-        force();
     }
 
     private boolean keysEqual(int off, byte[] key) {
@@ -176,7 +180,6 @@ public final class ExtendibleHashTableBucket {
         int idx = findEntryIndex(key);
         if (idx >= 0) {
             writeEntry(idx, key, value);
-            force();
             return false;
         }
 
@@ -186,7 +189,6 @@ public final class ExtendibleHashTableBucket {
         }
 
         writeEntry(free, key, value);
-        force();
         return true;
     }
 
@@ -205,7 +207,6 @@ public final class ExtendibleHashTableBucket {
 
         // Mark as empty
         writeInt(off, 0);
-        force();
         return value;
     }
 
@@ -250,7 +251,6 @@ public final class ExtendibleHashTableBucket {
             writeInt(off, 0);
             table.insertDuringSplit(key, value);
         }
-        force();
     }
 
     void force() {

@@ -13,8 +13,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
-import com.ruskaof.algorithm.hash.LshHashTable;
-
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -27,8 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(3)
 public class LshHashTableBenchmark {
 
-    @Param({ "100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300", "2500", "2700",
-            "2900" })
+    @Param({  "2900", "3100", "3300", "3500", "3700", "3900", "4100", "4300", "4500", "4700", "4900" })
     public int entryCount;
 
     public int dimension = 16;
@@ -54,26 +51,31 @@ public class LshHashTableBenchmark {
         }
     }
 
-    @Benchmark
-    public List<List<Integer>> benchmarkReadBuckets() {
-        return lsh.read();
-    }
+    // @Benchmark
+    // public List<List<Integer>> benchmarkReadBuckets() {
+    //     return lsh.read();
+    // }
 
     @Benchmark
-    public void benchmarkAddVector() {
-        double[] v = new double[dimension];
-        for (int d = 0; d < dimension; d++) {
-            v[d] = random.nextGaussian();
-        }
-        lsh.add(v);
+    public List<int[]> benchmarkFindDoubles() {
+        return lsh.findDoubles();
     }
 
-    @Benchmark
-    public LshHashTable benchmarkBuildTable() {
-        LshHashTable table = new LshHashTable(dimension, 16);
-        for (int i = 0; i < entryCount; i++) {
-            table.add(vectors[i]);
-        }
-        return table;
-    }
+    // @Benchmark
+    // public void benchmarkAddVector() {
+    //     double[] v = new double[dimension];
+    //     for (int d = 0; d < dimension; d++) {
+    //         v[d] = random.nextGaussian();
+    //     }
+    //     lsh.add(v);
+    // }
+
+    // @Benchmark
+    // public LshHashTable benchmarkBuildTable() {
+    //     LshHashTable table = new LshHashTable(dimension, 16);
+    //     for (int i = 0; i < entryCount; i++) {
+    //         table.add(vectors[i]);
+    //     }
+    //     return table;
+    // }
 }
