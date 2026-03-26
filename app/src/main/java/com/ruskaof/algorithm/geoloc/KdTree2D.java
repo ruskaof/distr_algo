@@ -100,26 +100,26 @@ public final class KdTree2D<T> {
             return List.of();
         }
         int k = Math.min(n, size);
-        PriorityQueue<Neighbor<T>> heap = new PriorityQueue<>(
+        PriorityQueue<Neighbor<T>> queue = new PriorityQueue<>(
                 Comparator.comparingDouble((Neighbor<T> a) -> a.dist2).reversed());
 
-        nearest(root, x, y, 0, heap, k);
+        nearest(root, x, y, 0, queue, k);
 
-        List<GeoObject<T>> out = new ArrayList<>(heap.size());
-        while (!heap.isEmpty()) {
-            out.add(heap.poll().object);
+        List<GeoObject<T>> out = new ArrayList<>(queue.size());
+        while (!queue.isEmpty()) {
+            out.add(queue.poll().object);
         }
         out.sort(Comparator.comparingDouble(o -> dist2(x, y, o.x(), o.y())));
         return out;
     }
 
-    private void nearest(Node<T> node, double qx, double qy, int depth, PriorityQueue<Neighbor<T>> heap, int k) {
+    private void nearest(Node<T> node, double qx, double qy, int depth, PriorityQueue<Neighbor<T>> queue, int k) {
         if (node == null) {
             return;
         }
 
         double d2 = dist2(qx, qy, node.x, node.y);
-        offer(heap, k, new Neighbor<>(d2, new GeoObject<>(node.x, node.y, node.payload)));
+        offer(queue, k, new Neighbor<>(d2, new GeoObject<>(node.x, node.y, node.payload)));
 
         int dim = depth & 1;
         double planeDist;
@@ -135,23 +135,23 @@ public final class KdTree2D<T> {
         Node<T> nearChild = queryLeft ? node.left : node.right;
         Node<T> farChild = queryLeft ? node.right : node.left;
 
-        nearest(nearChild, qx, qy, depth + 1, heap, k);
+        nearest(nearChild, qx, qy, depth + 1, queue, k);
 
         double planeDist2 = planeDist * planeDist;
-        double worst = heap.size() < k ? Double.POSITIVE_INFINITY : heap.peek().dist2;
-        if (planeDist2 < worst || heap.size() < k) {
-            nearest(farChild, qx, qy, depth + 1, heap, k);
+        double worst = queue.size() < k ? Double.POSITIVE_INFINITY : queue.peek().dist2;
+        if (planeDist2 < worst || queue.size() < k) {
+            nearest(farChild, qx, qy, depth + 1, queue, k);
         }
     }
 
-    private static <T> void offer(PriorityQueue<Neighbor<T>> heap, int k, Neighbor<T> candidate) {
-        if (heap.size() < k) {
-            heap.offer(candidate);
+    private static <T> void offer(PriorityQueue<Neighbor<T>> queue, int k, Neighbor<T> candidate) {
+        if (queue.size() < k) {
+            queue.offer(candidate);
             return;
         }
-        if (candidate.dist2 < heap.peek().dist2) {
-            heap.poll();
-            heap.offer(candidate);
+        if (candidate.dist2 < queue.peek().dist2) {
+            queue.poll();
+            queue.offer(candidate);
         }
     }
 
