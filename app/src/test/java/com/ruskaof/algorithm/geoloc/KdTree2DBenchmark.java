@@ -41,11 +41,11 @@ public class KdTree2DBenchmark {
     @Setup(Level.Trial)
     public void setup() {
         random = new Random();
-        List<GeoObject<Long>> points = new ArrayList<>(pointCount);
+        List<KdItem<Long>> points = new ArrayList<>(pointCount);
         for (int i = 0; i < pointCount; i++) {
             double x = random.nextDouble() * SPAN;
             double y = random.nextDouble() * SPAN;
-            points.add(new GeoObject<>(x, y, (long) i));
+            points.add(new KdItem<>(x, y, (long) i));
         }
 
         tree = KdTree2D.buildBalanced(points);
@@ -60,7 +60,7 @@ public class KdTree2DBenchmark {
     }
 
     @Benchmark
-    public List<GeoObject<Long>> benchmarkNearestQueries() {
+    public List<KdItem<Long>> benchmarkNearestQueries() {
         int i = random.nextInt(queryXs.length);
         return tree.findNearest(queryXs[i], queryYs[i], nearestK);
     }
@@ -68,9 +68,9 @@ public class KdTree2DBenchmark {
     @Benchmark
     public KdTree2D<Long> benchmarkBuildBalancedTree() {
         Random r = new Random();
-        List<GeoObject<Long>> points = new ArrayList<>(pointCount);
+        List<KdItem<Long>> points = new ArrayList<>(pointCount);
         for (int i = 0; i < pointCount; i++) {
-            points.add(new GeoObject<>(r.nextDouble() * SPAN, r.nextDouble() * SPAN, (long) i));
+            points.add(new KdItem<>(r.nextDouble() * SPAN, r.nextDouble() * SPAN, (long) i));
         }
         return KdTree2D.buildBalanced(points);
     }

@@ -2,14 +2,13 @@ package com.ruskaof.algorithm.geoloc;
 
 import java.util.Objects;
 
-
-public final class GeoObject<T> {
+public final class KdItem<T> {
 
     private final double x;
     private final double y;
     private final T payload;
 
-    public GeoObject(double x, double y, T payload) {
+    public KdItem(double x, double y, T payload) {
         if (Double.isNaN(x) || Double.isNaN(y)) {
             throw new IllegalArgumentException("Coordinates must not be NaN");
         }

@@ -10,23 +10,23 @@ public final class Knn2D<T> {
 
     private static final class Neighbor<T> {
         final double dist2;
-        final GeoObject<T> object;
+        final KdItem<T> object;
 
-        Neighbor(double dist2, GeoObject<T> object) {
+        Neighbor(double dist2, KdItem<T> object) {
             this.dist2 = dist2;
             this.object = object;
         }
     }
 
-    private final List<GeoObject<T>> points;
+    private final List<KdItem<T>> points;
 
-    private Knn2D(List<GeoObject<T>> points) {
+    private Knn2D(List<KdItem<T>> points) {
         this.points = points;
     }
 
-    public static <T> Knn2D<T> from(List<GeoObject<T>> objects) {
+    public static <T> Knn2D<T> from(List<KdItem<T>> objects) {
         Objects.requireNonNull(objects, "objects must not be null");
-        for (GeoObject<T> o : objects) {
+        for (KdItem<T> o : objects) {
             Objects.requireNonNull(o, "object must not be null");
         }
         return new Knn2D<>(new ArrayList<>(objects));
@@ -36,7 +36,7 @@ public final class Knn2D<T> {
         return points.size();
     }
 
-    public List<GeoObject<T>> findNearest(double x, double y, int n) {
+    public List<KdItem<T>> findNearest(double x, double y, int n) {
         if (n <= 0) {
             return List.of();
         }
@@ -46,11 +46,11 @@ public final class Knn2D<T> {
         int k = Math.min(n, points.size());
         PriorityQueue<Neighbor<T>> heap = new PriorityQueue<>(
                 Comparator.comparingDouble((Neighbor<T> a) -> a.dist2).reversed());
-        for (GeoObject<T> p : points) {
+        for (KdItem<T> p : points) {
             double d2 = dist2(x, y, p.x(), p.y());
             offer(heap, k, new Neighbor<>(d2, p));
         }
-        List<GeoObject<T>> out = new ArrayList<>(heap.size());
+        List<KdItem<T>> out = new ArrayList<>(heap.size());
         while (!heap.isEmpty()) {
             out.add(heap.poll().object);
         }

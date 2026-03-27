@@ -22,7 +22,7 @@ class KdTree2DTest {
 
     @Test
     void geoObjectRejectsNullPayload() {
-        assertThrows(NullPointerException.class, () -> new GeoObject<>(0, 0, null));
+        assertThrows(NullPointerException.class, () -> new KdItem<>(0, 0, null));
     }
 
     @Test
@@ -46,8 +46,8 @@ class KdTree2DTest {
 
     @Test
     void buildBalancedRejectsNullElement() {
-        List<GeoObject<Integer>> list = new ArrayList<>();
-        list.add(new GeoObject<>(0, 0, 1));
+        List<KdItem<Integer>> list = new ArrayList<>();
+        list.add(new KdItem<>(0, 0, 1));
         list.add(null);
         assertThrows(NullPointerException.class, () -> KdTree2D.buildBalanced(list));
     }
@@ -55,7 +55,7 @@ class KdTree2DTest {
     @Test
     void nonPositiveNReturnsEmpty() {
         KdTree2D<Integer> tree = new KdTree2D<>();
-        tree.add(new GeoObject<>(1, 2, 1));
+        tree.add(new KdItem<>(1, 2, 1));
         assertTrue(tree.findNearest(0, 0, 0).isEmpty());
         assertTrue(tree.findNearest(0, 0, -1).isEmpty());
     }
@@ -63,8 +63,8 @@ class KdTree2DTest {
     @Test
     void singlePoint() {
         KdTree2D<String> tree = new KdTree2D<>();
-        tree.add(new GeoObject<>(10, 20, "a"));
-        List<GeoObject<String>> near = tree.findNearest(0, 0, 3);
+        tree.add(new KdItem<>(10, 20, "a"));
+        List<KdItem<String>> near = tree.findNearest(0, 0, 3);
         assertEquals(1, near.size());
         assertEquals("a", near.get(0).payload());
         assertEquals(1, tree.size());
@@ -73,11 +73,11 @@ class KdTree2DTest {
     @Test
     void nearestOrderingSmallGrid() {
         KdTree2D<String> tree = new KdTree2D<>();
-        tree.add(new GeoObject<>(0, 0, "origin"));
-        tree.add(new GeoObject<>(100, 0, "far"));
-        tree.add(new GeoObject<>(3, 4, "close"));
+        tree.add(new KdItem<>(0, 0, "origin"));
+        tree.add(new KdItem<>(100, 0, "far"));
+        tree.add(new KdItem<>(3, 4, "close"));
 
-        List<GeoObject<String>> near = tree.findNearest(0, 0, 2);
+        List<KdItem<String>> near = tree.findNearest(0, 0, 2);
         assertEquals(2, near.size());
         assertEquals("origin", near.get(0).payload());
         assertEquals("close", near.get(1).payload());
@@ -86,11 +86,11 @@ class KdTree2DTest {
     @Test
     void nGreaterThanSizeReturnsAllSortedByDistance() {
         KdTree2D<Integer> tree = new KdTree2D<>();
-        tree.add(new GeoObject<>(0, 0, 1));
-        tree.add(new GeoObject<>(10, 0, 2));
-        tree.add(new GeoObject<>(5, 0, 3));
+        tree.add(new KdItem<>(0, 0, 1));
+        tree.add(new KdItem<>(10, 0, 2));
+        tree.add(new KdItem<>(5, 0, 3));
 
-        List<GeoObject<Integer>> near = tree.findNearest(0, 0, 100);
+        List<KdItem<Integer>> near = tree.findNearest(0, 0, 100);
         assertEquals(3, near.size());
         assertEquals(1, (int) near.get(0).payload());
         assertEquals(3, (int) near.get(1).payload());
@@ -101,9 +101,9 @@ class KdTree2DTest {
     void buildBalancedMatchesBruteForceOnRandomData() {
         Random random = new Random();
         int numPoints = 500;
-        List<GeoObject<Integer>> points = new ArrayList<>(numPoints);
+        List<KdItem<Integer>> points = new ArrayList<>(numPoints);
         for (int i = 0; i < numPoints; i++) {
-            points.add(new GeoObject<>(random.nextDouble() * 1000, random.nextDouble() * 1000, i));
+            points.add(new KdItem<>(random.nextDouble() * 1000, random.nextDouble() * 1000, i));
         }
 
         KdTree2D<Integer> tree = KdTree2D.buildBalanced(points);
@@ -114,8 +114,8 @@ class KdTree2DTest {
             double qy = random.nextDouble() * 1000;
             int k = 1 + random.nextInt(40);
 
-            List<GeoObject<Integer>> expected = bruteForceNearest(points, qx, qy, k);
-            List<GeoObject<Integer>> actual = tree.findNearest(qx, qy, k);
+            List<KdItem<Integer>> expected = bruteForceNearest(points, qx, qy, k);
+            List<KdItem<Integer>> actual = tree.findNearest(qx, qy, k);
 
             assertEquals(expected.size(), actual.size(), "trial " + trial);
             for (int i = 0; i < expected.size(); i++) {
@@ -128,13 +128,13 @@ class KdTree2DTest {
     void matchesBruteForceOnRandomData() {
         Random random = new Random();
         int numPoints = 500;
-        List<GeoObject<Integer>> points = new ArrayList<>(numPoints);
+        List<KdItem<Integer>> points = new ArrayList<>(numPoints);
         for (int i = 0; i < numPoints; i++) {
-            points.add(new GeoObject<>(random.nextDouble() * 1000, random.nextDouble() * 1000, i));
+            points.add(new KdItem<>(random.nextDouble() * 1000, random.nextDouble() * 1000, i));
         }
 
         KdTree2D<Integer> tree = new KdTree2D<>();
-        for (GeoObject<Integer> p : points) {
+        for (KdItem<Integer> p : points) {
             tree.add(p);
         }
         assertEquals(numPoints, tree.size());
@@ -144,8 +144,8 @@ class KdTree2DTest {
             double qy = random.nextDouble() * 1000;
             int k = 1 + random.nextInt(40);
 
-            List<GeoObject<Integer>> expected = bruteForceNearest(points, qx, qy, k);
-            List<GeoObject<Integer>> actual = tree.findNearest(qx, qy, k);
+            List<KdItem<Integer>> expected = bruteForceNearest(points, qx, qy, k);
+            List<KdItem<Integer>> actual = tree.findNearest(qx, qy, k);
 
             assertEquals(expected.size(), actual.size(), "trial " + trial);
             for (int i = 0; i < expected.size(); i++) {
@@ -154,7 +154,7 @@ class KdTree2DTest {
         }
     }
 
-    private static <T> List<GeoObject<T>> bruteForceNearest(List<GeoObject<T>> points, double qx, double qy, int k) {
+    private static <T> List<KdItem<T>> bruteForceNearest(List<KdItem<T>> points, double qx, double qy, int k) {
         int n = Math.min(k, points.size());
         return points.stream()
                 .sorted(Comparator.comparingDouble(p -> dist2(qx, qy, p.x(), p.y())))

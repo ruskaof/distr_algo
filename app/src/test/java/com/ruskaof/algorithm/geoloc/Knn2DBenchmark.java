@@ -41,11 +41,11 @@ public class Knn2DBenchmark {
     @Setup(Level.Trial)
     public void setup() {
         random = new Random();
-        List<GeoObject<Long>> points = new ArrayList<>(pointCount);
+        List<KdItem<Long>> points = new ArrayList<>(pointCount);
         for (int i = 0; i < pointCount; i++) {
             double x = random.nextDouble() * SPAN;
             double y = random.nextDouble() * SPAN;
-            points.add(new GeoObject<>(x, y, (long) i));
+            points.add(new KdItem<>(x, y, (long) i));
         }
 
         linearKnn = Knn2D.from(points);
@@ -60,7 +60,7 @@ public class Knn2DBenchmark {
     }
 
     @Benchmark
-    public List<GeoObject<Long>> benchmarkNearestQueriesLinearKnn() {
+    public List<KdItem<Long>> benchmarkNearestQueriesLinearKnn() {
         int i = random.nextInt(queryXs.length);
         return linearKnn.findNearest(queryXs[i], queryYs[i], nearestK);
     }

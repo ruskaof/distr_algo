@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.PriorityQueue;
 
-
 public final class KdTree2D<T> {
 
     private static final class Node<T> {
@@ -16,7 +15,7 @@ public final class KdTree2D<T> {
         Node<T> left;
         Node<T> right;
 
-        Node(GeoObject<T> object) {
+        Node(KdItem<T> object) {
             this.x = object.x();
             this.y = object.y();
             this.payload = object.payload();
@@ -25,9 +24,9 @@ public final class KdTree2D<T> {
 
     private static final class Neighbor<T> {
         final double dist2;
-        final GeoObject<T> object;
+        final KdItem<T> object;
 
-        Neighbor(double dist2, GeoObject<T> object) {
+        Neighbor(double dist2, KdItem<T> object) {
             this.dist2 = dist2;
             this.object = object;
         }
@@ -40,29 +39,29 @@ public final class KdTree2D<T> {
         return size;
     }
 
-    public static <T> KdTree2D<T> buildBalanced(List<GeoObject<T>> objects) {
+    public static <T> KdTree2D<T> buildBalanced(List<KdItem<T>> objects) {
         Objects.requireNonNull(objects, "objects must not be null");
-        for (GeoObject<T> o : objects) {
+        for (KdItem<T> o : objects) {
             Objects.requireNonNull(o, "object must not be null");
         }
         KdTree2D<T> tree = new KdTree2D<>();
         if (objects.isEmpty()) {
             return tree;
         }
-        ArrayList<GeoObject<T>> copy = new ArrayList<>(objects);
+        ArrayList<KdItem<T>> copy = new ArrayList<>(objects);
         tree.root = buildBalanced(copy, 0, copy.size() - 1, 0);
         tree.size = copy.size();
         return tree;
     }
 
-    private static <T> Node<T> buildBalanced(List<GeoObject<T>> points, int from, int to, int depth) {
+    private static <T> Node<T> buildBalanced(List<KdItem<T>> points, int from, int to, int depth) {
         if (from > to) {
             return null;
         }
         int dim = depth & 1;
-        Comparator<GeoObject<T>> cmp = dim == 0
-                ? Comparator.comparingDouble(GeoObject::x)
-                : Comparator.comparingDouble(GeoObject::y);
+        Comparator<KdItem<T>> cmp = dim == 0
+                ? Comparator.comparingDouble(KdItem::x)
+                : Comparator.comparingDouble(KdItem::y);
         points.subList(from, to + 1).sort(cmp);
         int mid = (from + to) >>> 1;
         Node<T> node = new Node<>(points.get(mid));
@@ -71,13 +70,13 @@ public final class KdTree2D<T> {
         return node;
     }
 
-    public void add(GeoObject<T> object) {
+    public void add(KdItem<T> object) {
         Objects.requireNonNull(object, "object must not be null");
         root = insert(root, object, 0);
         size++;
     }
 
-    private Node<T> insert(Node<T> node, GeoObject<T> object, int depth) {
+    private Node<T> insert(Node<T> node, KdItem<T> object, int depth) {
         if (node == null) {
             return new Node<>(object);
         }
@@ -92,7 +91,7 @@ public final class KdTree2D<T> {
         return node;
     }
 
-    public List<GeoObject<T>> findNearest(double x, double y, int n) {
+    public List<KdItem<T>> findNearest(double x, double y, int n) {
         if (n <= 0) {
             return List.of();
         }
@@ -105,7 +104,7 @@ public final class KdTree2D<T> {
 
         nearest(root, x, y, 0, queue, k);
 
-        List<GeoObject<T>> out = new ArrayList<>(queue.size());
+        List<KdItem<T>> out = new ArrayList<>(queue.size());
         while (!queue.isEmpty()) {
             out.add(queue.poll().object);
         }
@@ -119,7 +118,7 @@ public final class KdTree2D<T> {
         }
 
         double d2 = dist2(qx, qy, node.x, node.y);
-        offer(queue, k, new Neighbor<>(d2, new GeoObject<>(node.x, node.y, node.payload)));
+        offer(queue, k, new Neighbor<>(d2, new KdItem<>(node.x, node.y, node.payload)));
 
         int dim = depth & 1;
         double planeDist;
