@@ -31,61 +31,60 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+def registerJmhTask = { String taskName, String benchName, String descriptionText, List<String> includePatterns, boolean withJfr ->
+    tasks.register(taskName, JavaExec) {
+        group = 'benchmark'
+        description = descriptionText
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = 'org.openjdk.jmh.Main'
 
-def jmhResultsDir = layout.buildDirectory.dir('jmh-results')
+        File benchDir = rootProject.file("bench/${benchName}")
+        File csvFile = new File(benchDir, "jmh-${benchName}.csv")
+        File jfrDir = new File(benchDir, 'jfr')
 
-tasks.register('jmhResultsDir') {
-    doLast {
-        jmhResultsDir.get().asFile.mkdirs()
+        doFirst {
+            benchDir.mkdirs()
+            if (withJfr) {
+                jfrDir.mkdirs()
+                args = includePatterns + ['-prof', "jfr:dir=../bench/${benchName}/jfr"]
+            } else {
+                args = includePatterns + ['-rf', 'csv', '-rff', csvFile.absolutePath]
+            }
+        }
     }
 }
 
-tasks.register('jmh', JavaExec) {
-    dependsOn 'jmhResultsDir'
-    group = 'benchmark'
-    description = 'Run all JMH benchmarks'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'org.openjdk.jmh.Main'
+def jmhAllIncludes = ['com.ruskaof.algorithm.hash.ExtendibleHashTableBenchmark.*',
+                      'com.ruskaof.algorithm.hash.ExtendibleHashTableLargeTableGetBenchmark.*',
+                      'com.ruskaof.algorithm.hash.PerfectHashBenchmark.*',
+                      'com.ruskaof.algorithm.hash.PerfectHashLargeTableGetBenchmark.*',
+                      'com.ruskaof.algorithm.hash.LshHashTableBenchmark.*',
+                      'com.ruskaof.algorithm.geoloc.KdTree2DBenchmark.*',
+                      'com.ruskaof.algorithm.geoloc.Knn2DBenchmark.*']
+def jmhExtendibleIncludes = ['com.ruskaof.algorithm.hash.ExtendibleHashTableBenchmark.*',
+                             'com.ruskaof.algorithm.hash.ExtendibleHashTableLargeTableGetBenchmark.*']
+def jmhPerfectIncludes = ['com.ruskaof.algorithm.hash.PerfectHashBenchmark.*',
+                          'com.ruskaof.algorithm.hash.PerfectHashLargeTableGetBenchmark.*']
+def jmhLshIncludes = ['com.ruskaof.algorithm.hash.LshHashTableBenchmark.*']
+def jmhGeolocIncludes = ['com.ruskaof.algorithm.geoloc.KdTree2DBenchmark.*',
+                         'com.ruskaof.algorithm.geoloc.Knn2DBenchmark.*']
+def jmhLargeTableGetIncludes = ['com.ruskaof.algorithm.hash.PerfectHashLargeTableGetBenchmark.*',
+                                'com.ruskaof.algorithm.hash.ExtendibleHashTableLargeTableGetBenchmark.*']
 
-    args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*',
-            'com.ruskaof.algorithm.PerfectHashBenchmark.*',
-            'com.ruskaof.algorithm.LshHashTableBenchmark.*',
-            '-rf', 'csv',
-            '-rff', jmhResultsDir.get().file('jmh-all.csv').asFile.absolutePath]
-}
+registerJmhTask('jmh_csv', 'all', 'Run all JMH benchmarks (CSV)', jmhAllIncludes, false)
+registerJmhTask('jmh_jfr', 'all', 'Run all JMH benchmarks (JFR)', jmhAllIncludes, true)
 
-tasks.register('jmh_extendible', JavaExec) {
-    dependsOn 'jmhResultsDir'
-    group = 'benchmark'
-    description = 'Run ExtendibleHashTable JMH benchmarks'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'org.openjdk.jmh.Main'
+registerJmhTask('jmh_extendible_csv', 'extendible', 'Run ExtendibleHashTable JMH benchmarks (CSV)', jmhExtendibleIncludes, false)
+registerJmhTask('jmh_extendible_jfr', 'extendible', 'Run ExtendibleHashTable JMH benchmarks (JFR)', jmhExtendibleIncludes, true)
 
-    args = ['com.ruskaof.algorithm.ExtendibleHashTableBenchmark.*',
-            '-rf', 'csv',
-            '-rff', jmhResultsDir.get().file('jmh-extendible.csv').asFile.absolutePath]
-}
+registerJmhTask('jmh_perfect_csv', 'perfect', 'Run PerfectHash JMH benchmarks (CSV)', jmhPerfectIncludes, false)
+registerJmhTask('jmh_perfect_jfr', 'perfect', 'Run PerfectHash JMH benchmarks (JFR)', jmhPerfectIncludes, true)
 
-tasks.register('jmh_perfect', JavaExec) {
-    dependsOn 'jmhResultsDir'
-    group = 'benchmark'
-    description = 'Run PerfectHash JMH benchmarks'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'org.openjdk.jmh.Main'
+registerJmhTask('jmh_lsh_csv', 'lsh', 'Run LshHashTable JMH benchmarks (CSV)', jmhLshIncludes, false)
+registerJmhTask('jmh_lsh_jfr', 'lsh', 'Run LshHashTable JMH benchmarks (JFR)', jmhLshIncludes, true)
 
-    args = ['com.ruskaof.algorithm.PerfectHashBenchmark.*',
-            '-rf', 'csv',
-            '-rff', jmhResultsDir.get().file('jmh-perfect.csv').asFile.absolutePath]
-}
+registerJmhTask('jmh_geoloc_csv', 'geoloc', 'Run geoloc JMH benchmarks (CSV)', jmhGeolocIncludes, false)
+registerJmhTask('jmh_geoloc_jfr', 'geoloc', 'Run geoloc JMH benchmarks (JFR)', jmhGeolocIncludes, true)
 
-tasks.register('jmh_lsh', JavaExec) {
-    dependsOn 'jmhResultsDir'
-    group = 'benchmark'
-    description = 'Run LshHashTable JMH benchmarks'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'org.openjdk.jmh.Main'
-
-    args = ['com.ruskaof.algorithm.LshHashTableBenchmark.*',
-            '-rf', 'csv',
-            '-rff', jmhResultsDir.get().file('jmh-lsh.csv').asFile.absolutePath]
-}
+registerJmhTask('jmh_large_table_get_csv', 'large-table-get', 'Run large-table key-pool get JMH benchmarks (CSV)', jmhLargeTableGetIncludes, false)
+registerJmhTask('jmh_large_table_get_jfr', 'large-table-get', 'Run large-table key-pool get JMH benchmarks (JFR)', jmhLargeTableGetIncludes, true)

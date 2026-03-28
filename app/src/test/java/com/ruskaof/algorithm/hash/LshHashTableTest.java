@@ -1,9 +1,11 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -116,6 +118,16 @@ class LshHashTableTest {
                     .anyMatch(bucket -> bucket.containsAll(group));
             assertTrue(foundTogether,
                     "All duplicate ids for a vector must appear together in at least one bucket");
+        }
+
+        List<int[]> doubles = lsh.findDoubles();
+        assertEquals(baseCount * 3, doubles.size(), "Each group of 3 equal vectors yields 3 pairs");
+        Set<String> seen = new HashSet<>();
+        for (int[] p : doubles) {
+            assertEquals(2, p.length);
+            assertTrue(p[0] < p[1]);
+            assertFalse(seen.contains(p[0] + "," + p[1]));
+            seen.add(p[0] + "," + p[1]);
         }
     }
 

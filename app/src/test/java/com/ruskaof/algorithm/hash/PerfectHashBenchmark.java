@@ -1,4 +1,4 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -59,11 +59,6 @@ public class PerfectHashBenchmark {
     public byte[] benchmarkGetExisting() {
         int i = random.nextInt(entryCount);
         return perfectHash.get(keys[i]);
-    }
-
-    @Benchmark
-    public byte[] benchmarkGetSameEntry() {
-        return perfectHash.get(keys[0]);
     }
 
     @Benchmark

@@ -1,6 +1,7 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -111,6 +112,33 @@ public final class LshHashTable {
             allBuckets.add(new ArrayList<>(bucket));
         }
         return allBuckets;
+    }
+
+    public List<int[]> findDoubles() {
+        List<List<Integer>> buckets = read();
+        if (buckets.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<int[]> pairs = new ArrayList<>();
+        for (List<Integer> bucket : buckets) {
+            int n = bucket.size();
+            if (n < 2) {
+                continue;
+            }
+            for (int a = 0; a < n; a++) {
+                int ia = bucket.get(a);
+                double[] va = vectors.get(ia);
+                for (int b = a + 1; b < n; b++) {
+                    int ib = bucket.get(b);
+                    if (Arrays.equals(va, vectors.get(ib))) {
+                        int i = Math.min(ia, ib);
+                        int j = Math.max(ia, ib);
+                        pairs.add(new int[]{i, j});
+                    }
+                }
+            }
+        }
+        return pairs;
     }
 
     public double[] getVector(int id) {

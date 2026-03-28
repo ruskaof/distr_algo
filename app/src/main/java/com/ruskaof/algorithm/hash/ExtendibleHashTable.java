@@ -1,4 +1,4 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
@@ -6,6 +6,10 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 
 public class ExtendibleHashTable {
 
@@ -17,6 +21,7 @@ public class ExtendibleHashTable {
     private final int bucketCapacity;
     private final int maxKeyBytes;
     private final int maxValueBytes;
+    private final int flushEveryOperations;
 
     private static final int META_FILE_SIZE = 16 * 1024 * 1024;
     private static final int META_MAGIC = 0xEAEAEAEA;
@@ -30,22 +35,35 @@ public class ExtendibleHashTable {
 
     private FileChannel metaChannel;
     private MappedByteBuffer metaBuffer;
+    private int operationsSinceFlush = 0;
+
+    private boolean metadataDirty = false;
+    private final Set<ExtendibleHashTableBucket> dirtyBuckets =
+            Collections.newSetFromMap(new IdentityHashMap<>());
 
     public ExtendibleHashTable(Path baseDir) {
-        this(baseDir, DEFAULT_BUCKET_CAPACITY, DEFAULT_MAX_KEY_BYTES, DEFAULT_MAX_VALUE_BYTES);
+        this(baseDir, DEFAULT_BUCKET_CAPACITY, DEFAULT_MAX_KEY_BYTES, DEFAULT_MAX_VALUE_BYTES, 1);
     }
 
     public ExtendibleHashTable(Path baseDir, int bucketCapacity, int maxKeyBytes, int maxValueBytes) {
+        this(baseDir, bucketCapacity, maxKeyBytes, maxValueBytes, 1);
+    }
+
+    public ExtendibleHashTable(Path baseDir, int bucketCapacity, int maxKeyBytes, int maxValueBytes, int flushEveryOperations) {
         if (bucketCapacity <= 0) {
             throw new IllegalArgumentException("Bucket capacity must be positive");
         }
         if (maxKeyBytes <= 0 || maxValueBytes <= 0) {
             throw new IllegalArgumentException("Key/value size limits must be positive");
         }
+        if (flushEveryOperations <= 0) {
+            throw new IllegalArgumentException("flushEveryOperations must be positive");
+        }
         this.baseDir = baseDir;
         this.bucketCapacity = bucketCapacity;
         this.maxKeyBytes = maxKeyBytes;
         this.maxValueBytes = maxValueBytes;
+        this.flushEveryOperations = flushEveryOperations;
 
         if (!Files.exists(baseDir)) {
             try {
@@ -60,7 +78,12 @@ public class ExtendibleHashTable {
 
     private ExtendibleHashTableBucket createBucket(int id, int localDepth) {
         Path file = baseDir.resolve("bucket_" + id + ".dat");
-        return new ExtendibleHashTableBucket(id, localDepth, bucketCapacity, maxKeyBytes, maxValueBytes, file);
+        ExtendibleHashTableBucket bucket =
+                new ExtendibleHashTableBucket(id, localDepth, bucketCapacity, maxKeyBytes, maxValueBytes, file);
+        if (bucket.needsFlushOnCreate()) {
+            markBucketDirty(bucket);
+        }
+        return bucket;
     }
 
     private void initMetadataAndState() {
@@ -80,7 +103,7 @@ public class ExtendibleHashTable {
             int version = metaBuffer.getInt(4);
             if (magic != META_MAGIC || version != META_VERSION) {
                 initEmptyStructure();
-                flushMetadata();
+                flush();
                 return;
             }
 
@@ -92,7 +115,7 @@ public class ExtendibleHashTable {
                     storedMaxKeyBytes != maxKeyBytes ||
                     storedMaxValueBytes != maxValueBytes) {
                 initEmptyStructure();
-                flushMetadata();
+                flush();
                 return;
             }
 
@@ -103,7 +126,7 @@ public class ExtendibleHashTable {
 
             if (globalDepth < 1 || dirSize != (1 << globalDepth)) {
                 initEmptyStructure();
-                flushMetadata();
+                flush();
                 return;
             }
 
@@ -128,9 +151,12 @@ public class ExtendibleHashTable {
         for (int i = 0; i < directory.length; i++) {
             directory[i] = initial;
         }
+
+        markBucketDirty(initial);
+        writeMetadataToBuffer();
     }
 
-    private void flushMetadata() {
+    private void writeMetadataToBuffer() {
         if (metaBuffer == null) {
             return;
         }
@@ -156,15 +182,36 @@ public class ExtendibleHashTable {
             int bucketId = directory[i] == null ? -1 : directory[i].id();
             metaBuffer.putInt(offset + i * 4, bucketId);
         }
-        metaBuffer.force();
+        metadataDirty = true;
+    }
+
+    private void flush() {
+        if (metaBuffer != null && metadataDirty) {
+            metaBuffer.force();
+            metadataDirty = false;
+        }
+        for (ExtendibleHashTableBucket bucket : dirtyBuckets) {
+            bucket.force();
+        }
+        dirtyBuckets.clear();
+    }
+
+    private void recordMutationAndFlushIfNeeded() {
+        operationsSinceFlush++;
+        if (operationsSinceFlush >= flushEveryOperations) {
+            flush();
+            operationsSinceFlush = 0;
+        }
+    }
+
+    private void markBucketDirty(ExtendibleHashTableBucket bucket) {
+        if (bucket != null) {
+            dirtyBuckets.add(bucket);
+        }
     }
 
     private int hash(byte[] key) {
-        int h = 1;
-        for (byte b : key) {
-            h = 31 * h + (b & 0xff);
-        }
-        return h;
+        return Arrays.hashCode(key);
     }
 
     private int indexFor(byte[] key) {
@@ -182,7 +229,7 @@ public class ExtendibleHashTable {
             directory[i + oldSize] = old[i];
         }
         globalDepth++;
-        flushMetadata();
+        writeMetadataToBuffer();
     }
 
     private void splitBucket(int bucketIndex) {
@@ -197,6 +244,9 @@ public class ExtendibleHashTable {
         ExtendibleHashTableBucket newBucket = createBucket(nextBucketId++, newLocalDepth);
         oldBucket.setLocalDepth(newLocalDepth);
 
+        markBucketDirty(oldBucket);
+        markBucketDirty(newBucket);
+
         int bit = 1 << (newLocalDepth - 1);
 
         for (int i = 0; i < directory.length; i++) {
@@ -210,7 +260,7 @@ public class ExtendibleHashTable {
         }
 
         oldBucket.redistributeEntries(this);
-        flushMetadata();
+        writeMetadataToBuffer();
     }
 
     void insertDuringSplit(byte[] key, byte[] value) {
@@ -220,6 +270,7 @@ public class ExtendibleHashTable {
         if (!inserted) {
             throw new IllegalStateException("Bucket overflow during split redistribution");
         }
+        markBucketDirty(target);
     }
 
     public int size() {
@@ -247,14 +298,18 @@ public class ExtendibleHashTable {
 
             if (existing != null) {
                 bucket.put(key, value);
-                flushMetadata();
+                writeMetadataToBuffer();
+                markBucketDirty(bucket);
+                recordMutationAndFlushIfNeeded();
                 return;
             }
 
             boolean inserted = bucket.put(key, value);
             if (inserted) {
                 size++;
-                flushMetadata();
+                writeMetadataToBuffer();
+                markBucketDirty(bucket);
+                recordMutationAndFlushIfNeeded();
                 return;
             }
             splitBucket(index);
@@ -270,12 +325,15 @@ public class ExtendibleHashTable {
         byte[] old = bucket.remove(key);
         if (old != null) {
             size--;
-            flushMetadata();
+            writeMetadataToBuffer();
+            markBucketDirty(bucket);
+            recordMutationAndFlushIfNeeded();
         }
         return old;
     }
 
     public void close() {
+        flush();
         if (directory == null) {
             return;
         }

@@ -1,4 +1,4 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -25,8 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(3)
 public class LshHashTableBenchmark {
 
-    @Param({ "100", "300", "500", "700", "900", "1100", "1300", "1500", "1700", "1900", "2100", "2300", "2500", "2700",
-            "2900" })
+    @Param({  "2900", "3100", "3300", "3500", "3700", "3900", "4100", "4300", "4500", "4700", "4900" })
     public int entryCount;
 
     public int dimension = 16;
@@ -55,6 +54,11 @@ public class LshHashTableBenchmark {
     @Benchmark
     public List<List<Integer>> benchmarkReadBuckets() {
         return lsh.read();
+    }
+
+    @Benchmark
+    public List<int[]> benchmarkFindDoubles() {
+        return lsh.findDoubles();
     }
 
     @Benchmark

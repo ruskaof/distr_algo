@@ -1,4 +1,4 @@
-package com.ruskaof.algorithm;
+package com.ruskaof.algorithm.hash;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
