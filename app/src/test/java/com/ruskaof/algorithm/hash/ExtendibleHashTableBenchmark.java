@@ -33,6 +33,7 @@ public class ExtendibleHashTableBenchmark {
 
     private static final int KEY_LENGTH = 16;
     private static final int VALUE_LENGTH = 32;
+    private static final int RANDOM_INDEX_POOL_SIZE = 4096;
 
     private ExtendibleHashTable table;
     private ExtendibleHashTable tableFlushBatch100;
@@ -41,6 +42,11 @@ public class ExtendibleHashTableBenchmark {
     private Random random;
     private byte[][] keys;
     private byte[][] values;
+    private int[] getExistingIndices;
+    private int getExistingCursor;
+    private int[] putUpdateIndices;
+    private int putUpdateCursor;
+    private byte[][] putUpdateNewValues;
 
     @Setup(Level.Trial)
     public void setup() throws IOException {
@@ -60,6 +66,17 @@ public class ExtendibleHashTableBenchmark {
             table.put(keys[i], values[i]);
             tableFlushBatch100.put(keys[i], values[i]);
         }
+
+        getExistingIndices = new int[RANDOM_INDEX_POOL_SIZE];
+        putUpdateIndices = new int[RANDOM_INDEX_POOL_SIZE];
+        putUpdateNewValues = new byte[RANDOM_INDEX_POOL_SIZE][VALUE_LENGTH];
+        for (int i = 0; i < RANDOM_INDEX_POOL_SIZE; i++) {
+            getExistingIndices[i] = random.nextInt(entryCount);
+            putUpdateIndices[i] = random.nextInt(entryCount);
+            random.nextBytes(putUpdateNewValues[i]);
+        }
+        getExistingCursor = 0;
+        putUpdateCursor = 0;
     }
 
     @TearDown(Level.Trial)
@@ -94,16 +111,17 @@ public class ExtendibleHashTableBenchmark {
 
     @Benchmark
     public byte[] benchmarkGetExisting() {
-        int i = random.nextInt(entryCount);
+        int i = getExistingIndices[getExistingCursor];
+        getExistingCursor = (getExistingCursor + 1) % RANDOM_INDEX_POOL_SIZE;
         return table.get(keys[i]);
     }
 
     @Benchmark
     public void benchmarkPutUpdateExisting() {
-        int i = random.nextInt(entryCount);
-        byte[] newValue = new byte[VALUE_LENGTH];
-        random.nextBytes(newValue);
-        table.put(keys[i], newValue);
+        int slot = putUpdateCursor;
+        putUpdateCursor = (putUpdateCursor + 1) % RANDOM_INDEX_POOL_SIZE;
+        int i = putUpdateIndices[slot];
+        table.put(keys[i], putUpdateNewValues[slot]);
     }
 
     @Benchmark

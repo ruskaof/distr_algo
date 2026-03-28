@@ -33,10 +33,13 @@ public class PerfectHashBenchmark {
 
     private static final int KEY_LENGTH = 16;
     private static final int VALUE_LENGTH = 32;
+    private static final int RANDOM_INDEX_POOL_SIZE = 4096;
 
     private PerfectHash<ByteBuffer, byte[]> perfectHash;
     private ByteBuffer[] keys;
     private Random random;
+    private int[] getExistingIndices;
+    private int getExistingCursor;
 
     @Setup(Level.Trial)
     public void setup() {
@@ -53,11 +56,18 @@ public class PerfectHashBenchmark {
             data.put(keys[i], valueBytes);
         }
         perfectHash = new PerfectHash<>(data);
+
+        getExistingIndices = new int[RANDOM_INDEX_POOL_SIZE];
+        for (int i = 0; i < RANDOM_INDEX_POOL_SIZE; i++) {
+            getExistingIndices[i] = random.nextInt(entryCount);
+        }
+        getExistingCursor = 0;
     }
 
     @Benchmark
     public byte[] benchmarkGetExisting() {
-        int i = random.nextInt(entryCount);
+        int i = getExistingIndices[getExistingCursor];
+        getExistingCursor = (getExistingCursor + 1) % RANDOM_INDEX_POOL_SIZE;
         return perfectHash.get(keys[i]);
     }
 
