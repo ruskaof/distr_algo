@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 public class ExtendibleHashTableLargeTableGetBenchmark {
 
     private static final int KEY_POOL_SIZE = 500;
+    private static final int RANDOM_INDEX_POOL_SIZE = 4096;
 
     @Param({ "5000", "6000", "7000", "8000"})
     public int entryCount;
@@ -41,6 +42,8 @@ public class ExtendibleHashTableLargeTableGetBenchmark {
     private Random random;
     private byte[][] keys;
     private byte[][] keyPool;
+    private int[] keyPoolRandomIndices;
+    private int keyPoolRandomCursor;
 
     @Setup(Level.Trial)
     public void setup() throws IOException {
@@ -59,6 +62,12 @@ public class ExtendibleHashTableLargeTableGetBenchmark {
 
         keyPool = new byte[KEY_POOL_SIZE][];
         System.arraycopy(keys, 0, keyPool, 0, KEY_POOL_SIZE);
+
+        keyPoolRandomIndices = new int[RANDOM_INDEX_POOL_SIZE];
+        for (int i = 0; i < RANDOM_INDEX_POOL_SIZE; i++) {
+            keyPoolRandomIndices[i] = random.nextInt(KEY_POOL_SIZE);
+        }
+        keyPoolRandomCursor = 0;
     }
 
     @TearDown(Level.Trial)
@@ -80,6 +89,8 @@ public class ExtendibleHashTableLargeTableGetBenchmark {
 
     @Benchmark
     public byte[] benchmarkGetFromKeyPool() {
-        return table.get(keyPool[random.nextInt(KEY_POOL_SIZE)]);
+        int j = keyPoolRandomIndices[keyPoolRandomCursor];
+        keyPoolRandomCursor = (keyPoolRandomCursor + 1) % RANDOM_INDEX_POOL_SIZE;
+        return table.get(keyPool[j]);
     }
 }
