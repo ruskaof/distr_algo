@@ -51,31 +51,31 @@ public class LshHashTableBenchmark {
         }
     }
 
-    // @Benchmark
-    // public List<List<Integer>> benchmarkReadBuckets() {
-    //     return lsh.read();
-    // }
+    @Benchmark
+    public List<List<Integer>> benchmarkReadBuckets() {
+        return lsh.read();
+    }
 
     @Benchmark
     public List<int[]> benchmarkFindDoubles() {
         return lsh.findDoubles();
     }
 
-    // @Benchmark
-    // public void benchmarkAddVector() {
-    //     double[] v = new double[dimension];
-    //     for (int d = 0; d < dimension; d++) {
-    //         v[d] = random.nextGaussian();
-    //     }
-    //     lsh.add(v);
-    // }
+    @Benchmark
+    public void benchmarkAddVector() {
+        double[] v = new double[dimension];
+        for (int d = 0; d < dimension; d++) {
+            v[d] = random.nextGaussian();
+        }
+        lsh.add(v);
+    }
 
-    // @Benchmark
-    // public LshHashTable benchmarkBuildTable() {
-    //     LshHashTable table = new LshHashTable(dimension, 16);
-    //     for (int i = 0; i < entryCount; i++) {
-    //         table.add(vectors[i]);
-    //     }
-    //     return table;
-    // }
+    @Benchmark
+    public LshHashTable benchmarkBuildTable() {
+        LshHashTable table = new LshHashTable(dimension, 16);
+        for (int i = 0; i < entryCount; i++) {
+            table.add(vectors[i]);
+        }
+        return table;
+    }
 }

@@ -26,49 +26,45 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 1, time = 1)
 @Measurement(iterations = 3, time = 1)
 @Fork(3)
-public class ExtendibleHashTableBenchmark {
+public class ExtendibleHashTableLargeTableGetBenchmark {
 
-    @Param({ "100", "300", "500", "700", "900", "1100", "1300"})
+    private static final int KEY_POOL_SIZE = 500;
+
+    @Param({ "5000", "6000", "7000", "8000"})
     public int entryCount;
 
     private static final int KEY_LENGTH = 16;
     private static final int VALUE_LENGTH = 32;
 
     private ExtendibleHashTable table;
-    private ExtendibleHashTable tableFlushBatch100;
     private Path tempDir;
-    private Path tempDirBatch100;
     private Random random;
     private byte[][] keys;
-    private byte[][] values;
+    private byte[][] keyPool;
 
     @Setup(Level.Trial)
     public void setup() throws IOException {
-        tempDir = Files.createTempDirectory("ext-hash-bench");
-        tempDirBatch100 = Files.createTempDirectory("ext-hash-bench-batch100");
+        tempDir = Files.createTempDirectory("ext-hash-large-bench");
         table = new ExtendibleHashTable(tempDir, 8, 64, 256);
-        tableFlushBatch100 = new ExtendibleHashTable(tempDirBatch100, 8, 64, 256, 100);
         random = new Random();
 
         keys = new byte[entryCount][];
-        values = new byte[entryCount][];
         for (int i = 0; i < entryCount; i++) {
             keys[i] = new byte[KEY_LENGTH];
-            values[i] = new byte[VALUE_LENGTH];
+            byte[] value = new byte[VALUE_LENGTH];
             random.nextBytes(keys[i]);
-            random.nextBytes(values[i]);
-            table.put(keys[i], values[i]);
-            tableFlushBatch100.put(keys[i], values[i]);
+            random.nextBytes(value);
+            table.put(keys[i], value);
         }
+
+        keyPool = new byte[KEY_POOL_SIZE][];
+        System.arraycopy(keys, 0, keyPool, 0, KEY_POOL_SIZE);
     }
 
     @TearDown(Level.Trial)
     public void tearDown() throws IOException {
         if (table != null) {
             table.close();
-        }
-        if (tableFlushBatch100 != null) {
-            tableFlushBatch100.close();
         }
         if (tempDir != null) {
             Files.walk(tempDir)
@@ -80,47 +76,10 @@ public class ExtendibleHashTableBenchmark {
                         }
                     });
         }
-        if (tempDirBatch100 != null) {
-            Files.walk(tempDirBatch100)
-                    .sorted((a, b) -> b.getNameCount() - a.getNameCount())
-                    .forEach(p -> {
-                        try {
-                            Files.deleteIfExists(p);
-                        } catch (IOException ignored) {
-                        }
-                    });
-        }
     }
 
     @Benchmark
-    public byte[] benchmarkGetExisting() {
-        int i = random.nextInt(entryCount);
-        return table.get(keys[i]);
-    }
-
-    @Benchmark
-    public void benchmarkPutUpdateExisting() {
-        int i = random.nextInt(entryCount);
-        byte[] newValue = new byte[VALUE_LENGTH];
-        random.nextBytes(newValue);
-        table.put(keys[i], newValue);
-    }
-
-    @Benchmark
-    public void benchmarkPutNewKeys() {
-        byte[] key = new byte[KEY_LENGTH];
-        byte[] value = new byte[VALUE_LENGTH];
-        random.nextBytes(key);
-        random.nextBytes(value);
-        table.put(key, value);
-    }
-
-    @Benchmark
-    public void benchmarkPutNewKeysFlushBatch100() {
-        byte[] key = new byte[KEY_LENGTH];
-        byte[] value = new byte[VALUE_LENGTH];
-        random.nextBytes(key);
-        random.nextBytes(value);
-        tableFlushBatch100.put(key, value);
+    public byte[] benchmarkGetFromKeyPool() {
+        return table.get(keyPool[random.nextInt(KEY_POOL_SIZE)]);
     }
 }

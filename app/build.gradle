@@ -55,15 +55,21 @@ def registerJmhTask = { String taskName, String benchName, String descriptionTex
 }
 
 def jmhAllIncludes = ['com.ruskaof.algorithm.hash.ExtendibleHashTableBenchmark.*',
+                      'com.ruskaof.algorithm.hash.ExtendibleHashTableLargeTableGetBenchmark.*',
                       'com.ruskaof.algorithm.hash.PerfectHashBenchmark.*',
+                      'com.ruskaof.algorithm.hash.PerfectHashLargeTableGetBenchmark.*',
                       'com.ruskaof.algorithm.hash.LshHashTableBenchmark.*',
                       'com.ruskaof.algorithm.geoloc.KdTree2DBenchmark.*',
                       'com.ruskaof.algorithm.geoloc.Knn2DBenchmark.*']
-def jmhExtendibleIncludes = ['com.ruskaof.algorithm.hash.ExtendibleHashTableBenchmark.*']
-def jmhPerfectIncludes = ['com.ruskaof.algorithm.hash.PerfectHashBenchmark.*']
+def jmhExtendibleIncludes = ['com.ruskaof.algorithm.hash.ExtendibleHashTableBenchmark.*',
+                             'com.ruskaof.algorithm.hash.ExtendibleHashTableLargeTableGetBenchmark.*']
+def jmhPerfectIncludes = ['com.ruskaof.algorithm.hash.PerfectHashBenchmark.*',
+                          'com.ruskaof.algorithm.hash.PerfectHashLargeTableGetBenchmark.*']
 def jmhLshIncludes = ['com.ruskaof.algorithm.hash.LshHashTableBenchmark.*']
 def jmhGeolocIncludes = ['com.ruskaof.algorithm.geoloc.KdTree2DBenchmark.*',
                          'com.ruskaof.algorithm.geoloc.Knn2DBenchmark.*']
+def jmhLargeTableGetIncludes = ['com.ruskaof.algorithm.hash.PerfectHashLargeTableGetBenchmark.*',
+                                'com.ruskaof.algorithm.hash.ExtendibleHashTableLargeTableGetBenchmark.*']
 
 registerJmhTask('jmh_csv', 'all', 'Run all JMH benchmarks (CSV)', jmhAllIncludes, false)
 registerJmhTask('jmh_jfr', 'all', 'Run all JMH benchmarks (JFR)', jmhAllIncludes, true)
@@ -79,3 +85,6 @@ registerJmhTask('jmh_lsh_jfr', 'lsh', 'Run LshHashTable JMH benchmarks (JFR)', j
 
 registerJmhTask('jmh_geoloc_csv', 'geoloc', 'Run geoloc JMH benchmarks (CSV)', jmhGeolocIncludes, false)
 registerJmhTask('jmh_geoloc_jfr', 'geoloc', 'Run geoloc JMH benchmarks (JFR)', jmhGeolocIncludes, true)
+
+registerJmhTask('jmh_large_table_get_csv', 'large-table-get', 'Run large-table key-pool get JMH benchmarks (CSV)', jmhLargeTableGetIncludes, false)
+registerJmhTask('jmh_large_table_get_jfr', 'large-table-get', 'Run large-table key-pool get JMH benchmarks (JFR)', jmhLargeTableGetIncludes, true)
