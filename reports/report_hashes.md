@@ -37,7 +37,7 @@
 
 Вставка амортизированно работает за O(1), что видно на графике.
 
-![Extendible Hash Table](../graphs/hashes/extendible_put2.png)
+![](../graphs/hashes/extendible_put2.png.png)
 
 Профилирование CPU вставки:
 
@@ -47,7 +47,7 @@
 
 После оптимизации получаем сильно улучшенное время вставки:
 
-![Extendible Hash Table](../graphs/hashes/extendible_put_bathed.png)
+![Extendible Hash Table](../graphs/hashes/extendible_put_bached.png)
 
 И профилирование теперь выглядит так:
 
